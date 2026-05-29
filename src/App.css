@@ -1,0 +1,12 @@
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import "tailwindcss";
+
+:root {
+    color: white;
+    background-color: #13131f;
+    font-family: "Hanken Grotesk", sans-serif;
+}
+
+@theme {
+    --font-inter: "Inter", sans-serif;
+}
