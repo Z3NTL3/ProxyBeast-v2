@@ -1,6 +1,7 @@
+use chrono::Local;
 use std::time::Duration;
-use tauri::menu::{MenuBuilder, PredefinedMenuItem};
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
+use tokio::time::Instant;
 use tracing::field::Visit;
 use tracing::{info, Level, Subscriber};
 use tracing_subscriber::filter::filter_fn;
@@ -29,10 +30,12 @@ impl<S: Subscriber> Layer<S> for LiveLogs {
     }
 
     fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
-        let mut  visitor: MessageVisitor = Default::default();
+        let mut visitor: MessageVisitor = Default::default();
         event.record(&mut visitor);
 
-        let log = format!("{:?}", visitor.0);
+        let t: chrono::DateTime<Local> = Local::now();
+        let log = format!("[{}] {}", t.format("%d/%m/%Y %H:%M:%S"), visitor.0);
+
         APP_HANDLE
             .get()
             .unwrap()
@@ -77,7 +80,6 @@ pub fn run() {
             let main_window = windows.get("main").unwrap();
 
             main_window.hide()?;
-            main_window.center()?;
 
             let boot_window = tauri::webview::WebviewWindowBuilder::new(
                 app,
@@ -99,8 +101,8 @@ pub fn run() {
             let bootstrap = boot_window.clone();
             let main = main_window.clone();
 
-            boot_window.listen(events::WINDOW_LOADED, move |_| bootstrap.show().unwrap());
-            main_window.listen(events::WINDOW_LOADED, move |_| {
+            boot_window.once(events::WINDOW_LOADED, move |_| bootstrap.show().unwrap());
+            main_window.once(events::WINDOW_LOADED, move |_| {
                 let bootstrap_ = boot_window.clone();
                 let main_ = main.clone();
 
