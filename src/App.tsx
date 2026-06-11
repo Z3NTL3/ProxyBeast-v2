@@ -6,6 +6,11 @@ import logo from "./assets/logo.png";
 import { AiOutlineDashboard } from "react-icons/ai";
 import { IoSettingsOutline } from "react-icons/io5";
 import { FaRegQuestionCircle } from "react-icons/fa";
+import { MdOutlineClose } from "react-icons/md";
+import { MdMinimize } from "react-icons/md";
+import { Window } from "@tauri-apps/api/window"
+import { AiOutlineCloudUpload } from "react-icons/ai";
+import { open } from '@tauri-apps/plugin-dialog';
 
 function App() {
   useLoad();
@@ -14,9 +19,9 @@ function App() {
   });
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E]">
-      <div className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
+      <div  className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
         {/*logo*/}
-        <div className="flex items-center gap-2">
+        <div data-tauri-drag-region className="flex items-center gap-2">
           <img src={logo} />
           <h2 className="text-[24px] font-bold">ProxyBeast</h2>
         </div>
@@ -58,9 +63,31 @@ function App() {
           Support
         </p>
       </div>
-      <main className="flex flex-col w-full h-full">
-        <div className="bg-[#2A2A45] w-full h-10 p-3 font-inter text-[13px] text-white/80 border-b border-[#808080]/40">
+      <main className="flex flex-col w-full h-full items-start">
+        <div data-tauri-drag-region className="flex bg-[#2A2A45] w-full h-10 p-3 font-inter text-[13px] text-white/80 border-b border-[#808080]/40">
           Overview
+          <div className="flex grow items-center justify-end gap-x-1">
+            <MdMinimize className="font-bold" fontSize={18} onClick={() => Window.getCurrent().minimize() }/>
+            <MdOutlineClose className="font-bold" fontSize={18} onClick={() => Window.getCurrent().close() }/>
+          </div>
+        </div>
+
+        <div className="flex flex-col p-4 w-full h-full">
+          <div onClick={() => open({
+            multiple: false,
+            directory: false,
+            filters: [{
+              name: "(txt) Proxy file",
+              extensions: ["txt"]
+            }]
+          })} className="cursor-pointer flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[75%] h-125">
+            <div className="p-3 bg-[#DBDBFD] rounded-full mb-5">
+              <AiOutlineCloudUpload color="#4D6AF0" size={30} />
+            </div>
+
+            <h3>Drop your proxy list here</h3>
+            <p className="text-[13px] text-white/50">You can drag or simply click or drag in this box to select your proxy list file</p>
+          </div>
         </div>
       </main>
     </div>

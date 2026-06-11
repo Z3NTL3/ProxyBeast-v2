@@ -7,6 +7,10 @@
     font-family: "Hanken Grotesk", sans-serif;
 }
 
+*[data-tauri-drag-region] {
+  app-region: drag;
+}
+
 @theme {
     --font-inter: "Inter", sans-serif;
 }

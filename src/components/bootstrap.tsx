@@ -14,8 +14,7 @@ export default function Bootstrap() {
   });
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen w-screen bg-[#13131F] z-50">
-      <div data-tauri-drag-region></div>
+    <div data-tauri-drag-region className="flex flex-col justify-center items-center h-screen w-screen bg-[#13131F] z-50">
       <div className="px-4 py-3 bg-[#222236]/70 rounded-lg border border-[#808080]/30">
         <img
           width={26}
