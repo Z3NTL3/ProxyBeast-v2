@@ -86,7 +86,7 @@ function App() {
             </div>
 
             <h3>Drop your proxy list here</h3>
-            <p className="text-[13px] text-white/50">You can drag or simply click or drag in this box to select your proxy list file</p>
+            <p className="text-[13px] text-white/50">You simply drag or click in this box to select your proxy list file</p>
           </div>
         </div>
       </main>

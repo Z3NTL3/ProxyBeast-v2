@@ -1,6 +1,7 @@
 use std::time::Duration;
 use tauri::menu::{MenuBuilder, PredefinedMenuItem};
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
+use tracing::field::Visit;
 use tracing::{info, Level, Subscriber};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
@@ -28,13 +29,28 @@ impl<S: Subscriber> Layer<S> for LiveLogs {
     }
 
     fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
-        let log = format!("{:?}", event.metadata());
+        let mut  visitor: MessageVisitor = Default::default();
+        event.record(&mut visitor);
+
+        let log = format!("{:?}", visitor.0);
         APP_HANDLE
             .get()
             .unwrap()
             .app_handle()
             .emit_to("main", "activity", &log[..])
             .unwrap();
+    }
+}
+
+#[derive(Default)]
+#[repr(transparent)]
+struct MessageVisitor(String);
+
+impl Visit for MessageVisitor {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn core::fmt::Debug) {
+        if field.name() == "message" {
+            self.0 = format!("{:?}", value);
+        }
     }
 }
 
