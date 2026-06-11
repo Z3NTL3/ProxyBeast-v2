@@ -58,7 +58,7 @@ function App() {
         <div className="mt-5 cursor-pointer flex justify-center items-center gap-x-2 px-2 py-1.5 bg-[#0A84FF] rounded-lg font-inter text-[13px] text-center">
           Check Proxies
         </div>
-        <p className="flex items-center justify-center gap-x-1 text-center text-[12px] text-white/40 mt-2">
+        <p className="flex items-center justify-center gap-x-1 text-center text-[12px] text-white/40 mt-2 hover:text-white hover:cursor-pointer">
           <FaRegQuestionCircle />
           Support
         </p>
@@ -80,7 +80,7 @@ function App() {
               name: "(txt) Proxy file",
               extensions: ["txt"]
             }]
-          })} className="cursor-pointer flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[75%] h-125">
+          })} className="cursor-pointer rounded-md flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[75%] h-120">
             <div className="p-3 bg-[#DBDBFD] rounded-full mb-5">
               <AiOutlineCloudUpload color="#4D6AF0" size={30} />
             </div>
@@ -88,6 +88,10 @@ function App() {
             <h3>Drop your proxy list here</h3>
             <p className="text-[13px] text-white/50">You simply drag or click in this box to select your proxy list file</p>
           </div>
+        </div>
+
+        <div className="w-[73%] p-2 rounded-md mx-4 h-full mb-5 bg-[#2A2A45] hidden">
+          <h2>Live Logs</h2>
         </div>
       </main>
     </div>
