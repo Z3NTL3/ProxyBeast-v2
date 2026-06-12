@@ -13,7 +13,7 @@ ProxyBeast is a powerful, complete and free proxy checker with zero dependency a
 - Proxy anonimity level
 - Proxy latency
 - ``User/Pass`` and ``NoAuth`` negotiations supported
-- Intuitive
+- Ease of use
 - Small bundle size
   
 
