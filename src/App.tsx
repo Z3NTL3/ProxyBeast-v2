@@ -11,6 +11,8 @@ import { MdMinimize } from "react-icons/md";
 import { Window } from "@tauri-apps/api/window";
 import { AiOutlineCloudUpload } from "react-icons/ai";
 import { open } from "@tauri-apps/plugin-dialog";
+import { TiMediaPlayOutline } from "react-icons/ti";
+import { PiDownloadSimple } from "react-icons/pi";
 
 function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
@@ -88,7 +90,7 @@ function App() {
           </div>
         </div>
 
-        <div className="flex flex-col p-4 w-full h-full">
+        <div className="flex p-4 w-full h-full">
           <div
             onClick={() =>
               open({
@@ -102,7 +104,7 @@ function App() {
                 ],
               })
             }
-            className="cursor-pointer rounded-md flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[75%] h-120"
+            className="cursor-pointer rounded-md flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[78%] h-120"
           >
             <div className="p-3 bg-[#DBDBFD] rounded-full mb-5">
               <AiOutlineCloudUpload color="#4D6AF0" size={30} />
@@ -114,9 +116,61 @@ function App() {
               file
             </p>
           </div>
+
+          <div className="flex flex-col">
+            <div className="flex flex-col items-start justify-start bg-[#2A2A45] p-2 w-50 h-50 ml-2 rounded-md border border-white/10">
+              <div className="flex items-center w-full text-white/40 text-xs">
+                Total Loaded
+                <div className="flex grow justify-end items-center mr-2">
+                  <h4 className="text-white text-lg font-semibold">0</h4>
+                </div>
+              </div>
+
+              <div className="flex w-full items-center gap-x-2 mt-7">
+                <div className="bg-green-500 rounded-full w-2 h-2"></div>
+
+                <p className="text-xs text-white/40">Live</p>
+
+                <h2 className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
+                  0
+                </h2>
+              </div>
+
+              <div className="flex w-full items-center gap-x-2 mt-1">
+                <div className="bg-red-500 rounded-full w-2 h-2"></div>
+
+                <p className="text-xs text-white/40">Dead</p>
+
+                <h2 className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
+                  0
+                </h2>
+              </div>
+
+              <div className="flex flex-col w-full grow justify-end">
+                <div className="flex items-center">
+                  <h2 className="text-xs text-white/40">Progress</h2>
+
+                  <div className="flex w-full justify-end text-white/40 text-xs">
+                    0%
+                  </div>
+                </div>
+                <div className="border border-white/20 bg-white w-full h-2 rounded-full"></div>
+              </div>
+            </div>
+
+            <div className="cursor-pointer flex items-center gap-x-1 justify-center bg-[#0A84FF] w-full ml-2 rounded-lg p-4 mt-5 text-center font-bold">
+              <TiMediaPlayOutline size={24} />
+              Start Check
+            </div>
+
+            <div className="cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs">
+              <PiDownloadSimple className="text-white/70 font-bold" size={19} />
+              Export Proxies
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col w-[73%] p-2 rounded-md mx-4 h-fit overflow-hidden mb-5 bg-[#2A2A45] border border-white/10">
+        <div className="flex flex-col w-[76%] p-2 rounded-md mx-4 h-fit overflow-hidden mb-5 bg-[#2A2A45] border border-white/10">
           <div className="flex items-center w-full h-fit">
             <h2 className="font-semibold font-inter">Live Logs</h2>
 

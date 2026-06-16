@@ -10,11 +10,13 @@ ProxyBeast is a powerful, complete and free proxy checker with zero dependency a
 - High-performance
 - Reliable
 - Supports all proxy protocols (HTTP/HTTPS, SOCKS4/SOCKS5)
-- Proxy anonimity level
-- Proxy latency
-- ``User/Pass`` and ``NoAuth`` negotiations supported
-- Ease of use
-- Small bundle size
+- Proxy Statistics
+  - Anonimity level
+  - Latency
+- Authentication Methods
+  - ``User/Pass`` and ``NoAuth`` negotiations supported
+- Easy to use
+- Small & minimal app size
   
 
 > Check out the proxy client crate we made for ProxyBeast-v2 <br>
