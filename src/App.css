@@ -6,19 +6,19 @@
     background-color: #13131f;
     font-family: "Hanken Grotesk", sans-serif;
     -webkit-touch-callout: none; /* iOS Safari */
-      -webkit-user-select: none; /* Safari */
-       -khtml-user-select: none; /* Konqueror HTML */
-         -moz-user-select: none; /* Old versions of Firefox */
-          -ms-user-select: none; /* Internet Explorer/Edge */
-              user-select: none; /* Non-prefixed version, currently
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently
                                     supported by Chrome, Edge, Opera and Firefox */
 }
 
 *[data-tauri-drag-region] {
-  app-region: drag;
+    app-region: drag;
 }
-
 
 @theme {
     --font-inter: "Inter", sans-serif;
+    --text-xs: 0.9rem;
 }
