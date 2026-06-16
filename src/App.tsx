@@ -18,6 +18,7 @@ function App() {
   useLoad();
   useEffect(() => {
     listen("activity", (log) => {
+      console.log(1)
       setLogs((log_) => [...log_, log.payload as string]);
     });
   });

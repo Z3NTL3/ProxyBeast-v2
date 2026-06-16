@@ -1,9 +1,8 @@
 use chrono::Local;
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
-use tokio::time::Instant;
 use tracing::field::Visit;
-use tracing::{info, Level, Subscriber};
+use tracing::{info, Subscriber};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, Layer, Registry};
