@@ -131,7 +131,7 @@ pub fn run() {
                         .emit_to("bootstrapper", events::WINDOW_LOAD_PROGRESS, 1.0)
                         .unwrap();
 
-                    tokio::time::sleep(Duration::from_millis(1500)).await;
+                    tokio::time::sleep(Duration::from_millis(1200)).await;
                     bootstrap_.close().unwrap();
                     main_.show().unwrap();
                     main_.set_focus().unwrap();
