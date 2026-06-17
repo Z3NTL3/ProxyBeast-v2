@@ -16,6 +16,7 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 pub(crate) mod events {
     pub const WINDOW_LOADED: &'static str = "window_loaded";
     pub const WINDOW_LOAD_PROGRESS: &'static str = "load_progress";
+    pub const APP_VERSION: &'static str = "app_version";
 }
 
 struct LiveLogs;
@@ -29,7 +30,11 @@ impl<S: Subscriber> Layer<S> for LiveLogs {
     }
 
     // avoid unrelated events
-    fn event_enabled(&self, _event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) -> bool {
+    fn event_enabled(
+        &self,
+        _event: &tracing::Event<'_>,
+        _ctx: tracing_subscriber::layer::Context<'_, S>,
+    ) -> bool {
         if _event.metadata().target() == LIVE_LOGS {
             true
         } else {
@@ -136,6 +141,11 @@ pub fn run() {
                     main_.show().unwrap();
                     main_.set_focus().unwrap();
 
+                    APP_HANDLE
+                        .get()
+                        .unwrap()
+                        .emit_to("main", events::APP_VERSION, env!("CARGO_PKG_VERSION"))
+                        .unwrap();
                     info!(target: LIVE_LOGS ,"Application bootstrapped.");
                 });
             });

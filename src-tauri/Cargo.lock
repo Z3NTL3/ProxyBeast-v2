@@ -2716,7 +2716,7 @@ dependencies = [
 
 [[package]]
 name = "proxybeast-v2"
-version = "0.1.0"
+version = "0.1.5"
 dependencies = [
  "chrono",
  "proxifier-rs",

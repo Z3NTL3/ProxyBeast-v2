@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import useLoad from "./hooks/useLoad";
-import { listen } from "@tauri-apps/api/event";
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import logo from "./assets/logo.png";
 import { AiOutlineDashboard } from "react-icons/ai";
 import { IoSettingsOutline } from "react-icons/io5";
@@ -17,15 +17,23 @@ import { BsCashStack } from "react-icons/bs";
 
 function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
+  let [version, setVersion] = useState<string>("1.0.0");
 
   useLoad();
   useEffect(() => {
-    const unlisten = listen("activity", (log) => {
-      setLogs((log_) => [...log_, log.payload as string]);
+    const unlisten: Array<Promise<UnlistenFn>> = [];
+    const activity = listen("activity", (ev) => {
+      setLogs((log_) => [...log_, ev.payload as string]);
     });
 
+    const cargo_ver = listen("app_version", (ev) => {
+      setVersion(ev.payload as string);
+    });
+
+    unlisten.push(activity, cargo_ver);
+
     return () => {
-      unlisten.then((cleanup) => cleanup());
+      unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
   });
 
@@ -40,7 +48,7 @@ function App() {
         {/*end*/}
 
         {/*version*/}
-        <p className="text-xs text-white/40 mt-2">v0.1-dev</p>
+        <p className="text-xs text-white/40 mt-2">v{version}</p>
         {/*end*/}
 
         {/*items*/}
