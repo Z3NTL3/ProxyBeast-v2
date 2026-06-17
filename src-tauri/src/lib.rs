@@ -28,6 +28,15 @@ impl<S: Subscriber> Layer<S> for LiveLogs {
         true
     }
 
+    // avoid unrelated events
+    fn event_enabled(&self, _event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) -> bool {
+        if _event.metadata().target() == LIVE_LOGS {
+            true
+        } else {
+            false
+        }
+    }
+
     fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
         let mut visitor: MessageVisitor = Default::default();
         event.record(&mut visitor);
@@ -39,7 +48,7 @@ impl<S: Subscriber> Layer<S> for LiveLogs {
             .get()
             .unwrap()
             .app_handle()
-            .emit_to("main", "activity", &log[..])
+            .emit_to("main", "activity", log)
             .unwrap();
     }
 }

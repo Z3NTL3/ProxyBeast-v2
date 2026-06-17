@@ -19,11 +19,15 @@ function App() {
 
   useLoad();
   useEffect(() => {
-    listen("activity", (log) => {
-      console.log(1)
-      setLogs((log_) => [...log_, log.payload as string]);
-    });
+    const unlisten = listen("activity", (log) => {
+        setLogs((log_) => [...log_, log.payload as string]);
+      });
+
+    return () => {
+      unlisten.then((cleanup) => cleanup());
+    };
   });
+
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
       <div className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
@@ -46,16 +50,16 @@ function App() {
               Overview
             </div>
           </a>
-          <a href="/settings">
-            <div className="cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40  rounded-lg font-inter text-[13px] text-left">
-              <IoSettingsOutline size={20} />
-              Settings
-            </div>
-          </a>
           <a href="/credits">
             <div className="cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40 rounded-lg font-inter text-[13px] text-left">
               <AiOutlineDashboard size={20} />
               Credits
+            </div>
+          </a>
+          <a href="/settings">
+            <div className="cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40  rounded-lg font-inter text-[13px] text-left">
+              <IoSettingsOutline size={20} />
+              Settings
             </div>
           </a>
         </div>
@@ -158,8 +162,8 @@ function App() {
               </div>
             </div>
 
-            <div className="cursor-pointer flex items-center gap-x-1 justify-center bg-[#0A84FF] w-full ml-2 rounded-lg p-4 mt-5 text-center font-bold">
-              <TiMediaPlayOutline size={24} />
+            <div className="cursor-pointer flex items-center gap-x-1 text-sm justify-center bg-[#0A84FF] w-full ml-2 rounded-lg p-4 mt-5 text-center font-semibold">
+              <TiMediaPlayOutline size={20} />
               Start Check
             </div>
 
@@ -179,7 +183,7 @@ function App() {
             </div>
           </div>
 
-          <div className="w-full h-full overflow-y-scroll flex flex-col">
+          <div className="w-full h-20 overflow-y-scroll flex flex-col">
             {logs.map((log, i) => (
               <div key={`logview-item-${i}`} className="flex">
                 <p className="text-[13px] text-white/40">{log}</p>
