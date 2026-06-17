@@ -35,7 +35,7 @@ function App() {
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
-  });
+  }, []);
 
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
