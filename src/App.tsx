@@ -13,6 +13,7 @@ import { AiOutlineCloudUpload } from "react-icons/ai";
 import { open } from "@tauri-apps/plugin-dialog";
 import { TiMediaPlayOutline } from "react-icons/ti";
 import { PiDownloadSimple } from "react-icons/pi";
+import { BsCashStack } from "react-icons/bs";
 
 function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
@@ -20,8 +21,8 @@ function App() {
   useLoad();
   useEffect(() => {
     const unlisten = listen("activity", (log) => {
-        setLogs((log_) => [...log_, log.payload as string]);
-      });
+      setLogs((log_) => [...log_, log.payload as string]);
+    });
 
     return () => {
       unlisten.then((cleanup) => cleanup());
@@ -45,19 +46,19 @@ function App() {
         {/*items*/}
         <div className="flex flex-col gap-y-4 mt-10">
           <a href="/">
-            <div className="cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 bg-[#0A84FF] rounded-lg font-inter text-[13px] text-left">
+            <div className="hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)] cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 bg-[#0A84FF] rounded-lg font-inter text-[13px] text-left">
               <AiOutlineDashboard size={20} />
               Overview
             </div>
           </a>
           <a href="/credits">
-            <div className="cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40 rounded-lg font-inter text-[13px] text-left">
-              <AiOutlineDashboard size={20} />
+            <div className="hover:text-white cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40 rounded-lg font-inter text-[13px] text-left">
+              <BsCashStack size={20} />
               Credits
             </div>
           </a>
           <a href="/settings">
-            <div className="cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40  rounded-lg font-inter text-[13px] text-left">
+            <div className="hover:text-white cursor-pointer flex  items-center gap-x-2 px-2 py-1.5 text-white/40  rounded-lg font-inter text-[13px] text-left">
               <IoSettingsOutline size={20} />
               Settings
             </div>
@@ -151,14 +152,14 @@ function App() {
               </div>
 
               <div className="flex flex-col w-full grow justify-end">
-                <div className="flex items-center">
+                <div className="flex items-center p-1">
                   <h2 className="text-xs text-white/40">Progress</h2>
 
                   <div className="flex w-full justify-end text-white/40 text-xs">
                     0%
                   </div>
                 </div>
-                <div className="border border-white/20 bg-white w-full h-2 rounded-full"></div>
+                <div className="border border-white/20 bg-[#2A2A45] w-full h-2 rounded-full"></div>
               </div>
             </div>
 
