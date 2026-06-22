@@ -14,6 +14,8 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { TiMediaPlayOutline } from "react-icons/ti";
 import { PiDownloadSimple } from "react-icons/pi";
 import { BsCashStack } from "react-icons/bs";
+import { invoke, Channel } from '@tauri-apps/api/core';
+
 
 function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
@@ -36,6 +38,20 @@ function App() {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
   }, []);
+
+  useEffect(() => {
+    const onEvent = new Channel<String>();
+    onEvent.onmessage = (message) => {
+      console.log(`got download event ${message}`);
+    };
+
+    invoke('check_proxy', {
+      timeout: 6000,
+      proxyUri: "socks5://adsdadsasdqw123:adasdasdas@23.27.184.40:5641",
+      chan: onEvent,
+    }).then(console.info);
+
+  }, [])
 
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">

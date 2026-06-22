@@ -2701,9 +2701,9 @@ dependencies = [
 
 [[package]]
 name = "proxifier-rs"
-version = "0.1.110"
+version = "0.1.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28bac3ffb23b0f5de3d95fa64c5f61235087ef2d3acaf7c32abc42d3bab07f2b"
+checksum = "c1dfc339df1d09a27094a3f8ba6c42681e652fb793495738f3fd4baefcd7a4f4"
 dependencies = [
  "http",
  "rustls",
@@ -2719,6 +2719,7 @@ name = "proxybeast-v2"
 version = "0.1.5"
 dependencies = [
  "chrono",
+ "http",
  "proxifier-rs",
  "rand",
  "serde",
@@ -2731,6 +2732,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -4638,6 +4640,15 @@ dependencies = [
  "pkg-config",
  "soup3-sys",
  "system-deps",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf85cb06032201fa7c6f829d7db5a7e5aa45bcc0655327713065f6f0576731bf"
+dependencies = [
+ "rustls-pki-types",
 ]
 
 [[package]]
