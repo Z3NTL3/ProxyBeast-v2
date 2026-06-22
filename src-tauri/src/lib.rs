@@ -1,5 +1,5 @@
 use chrono::Local;
-use std::sync::atomic::{AtomicU8};
+use tokio::sync::Mutex;
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
 use tracing::field::Visit;
@@ -7,22 +7,16 @@ use tracing::{info, Subscriber};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, Layer, Registry};
-
 use std::sync::OnceLock;
 
 static LIVE_LOGS: &'static str = "live-logs";
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
-enum Signal {
-    Start,
-    Stop,
-    Null
-}
-
 struct AppState  {
-    proxy_checker: AtomicU8
+    proxy_checker: Mutex<CancellationToken>
 }
 
+pub(crate) use tokio_util::sync::CancellationToken;
 pub(crate) use std::sync::atomic::Ordering::SeqCst;
 pub(crate) mod commands;
 pub(crate) mod events {
@@ -87,11 +81,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::start_check, commands::stop_check])
+        .invoke_handler(tauri::generate_handler![commands::check_proxy, commands::stop_check])
         .setup(|app| {
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();
             app.manage(AppState{
-                proxy_checker: AtomicU8::new(Signal::Null as u8)
+                proxy_checker: Mutex::new(CancellationToken::new())
             });
 
             let subscriber = Registry::default()
