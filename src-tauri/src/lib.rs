@@ -92,7 +92,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             commands::check_proxy,
-            commands::stop_check
+            commands::stop_check,
+            commands::read_file
         ])
         .setup(|app| {
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();

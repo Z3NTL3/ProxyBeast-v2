@@ -14,8 +14,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { TiMediaPlayOutline } from "react-icons/ti";
 import { PiDownloadSimple } from "react-icons/pi";
 import { BsCashStack } from "react-icons/bs";
-import { invoke, Channel } from '@tauri-apps/api/core';
-
+import { invoke, Channel } from "@tauri-apps/api/core";
 
 function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
@@ -40,22 +39,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    console.log("loaded", loaded)
-    if (!loaded)
-      return
+    console.log("loaded", loaded);
+    if (!loaded) return;
 
     const onEvent = new Channel<String>();
     onEvent.onmessage = (message) => {
       console.log(`got download event ${message}`);
     };
 
-    invoke('check_proxy', {
+    invoke("check_proxy", {
       timeout: 6000,
       proxy_uri: "socks5://adsdadsasdqw123:adasdasdas@23.27.184.40:5641",
       chan: onEvent,
     }).then(console.info);
-
-  }, [loaded])
+  }, [loaded]);
 
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
@@ -125,8 +122,8 @@ function App() {
 
         <div className="flex p-4 w-full h-full">
           <div
-            onClick={() =>
-              open({
+            onClick={async () => {
+              let path = await open({
                 multiple: false,
                 directory: false,
                 filters: [
@@ -135,8 +132,11 @@ function App() {
                     extensions: ["txt"],
                   },
                 ],
-              })
-            }
+              });
+
+              console.log("path:", path);
+              invoke("read_file", { path });
+            }}
             className="cursor-pointer rounded-md flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[78%] h-120"
           >
             <div className="p-3 bg-[#DBDBFD] rounded-full mb-5">

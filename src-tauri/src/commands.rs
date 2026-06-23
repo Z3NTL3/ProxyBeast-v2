@@ -4,12 +4,12 @@ use proxifier_rs::{Port, ServerName};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::select;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
+use tokio::{fs, select};
 use tracing::info;
 
 /*
@@ -82,4 +82,16 @@ pub async fn check_proxy(
 pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), ()> {
     state.proxy_checker.signal.read().await.cancel();
     Ok(())
+}
+
+#[tauri::command]
+pub async fn read_file(path: String) -> Result<bool, String> {
+    let contents = fs::read(path).await.map_err(|err| err.to_string())?;
+    let mut lines = contents.lines();
+
+    while let Some(line) = lines.next_line().await.map_err(|err| err.to_string())? {
+        println!("line: {line}")
+    }
+
+    Ok(true)
 }
