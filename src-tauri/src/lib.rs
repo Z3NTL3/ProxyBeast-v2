@@ -4,7 +4,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
 use tokio::sync::watch::{channel, Receiver, Sender};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use tracing::field::Visit;
 use tracing::{info, Subscriber};
 use tracing_subscriber::filter::filter_fn;
@@ -21,7 +21,7 @@ struct AppState {
 
 // nothing here is final
 struct ProxyChecker {
-    signal: CancellationToken,
+    signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
 }
 
@@ -106,7 +106,7 @@ pub fn run() {
             );
 
             let mut checker = ProxyChecker {
-                signal: CancellationToken::new(),
+                signal: RwLock::new(CancellationToken::new()),
                 pipe: channel("null".into()),
             };
             checker.pipe.1.borrow_and_update(); // consume null

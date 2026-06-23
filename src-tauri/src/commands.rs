@@ -60,6 +60,7 @@ pub async fn check_proxy(
 
         let timeout_task = timeout(d, task);
         let state = app.state::<crate::AppState>();
+        let held = state.proxy_checker.signal.read().await;
 
         select! {
             res = timeout_task => {
@@ -68,7 +69,7 @@ pub async fn check_proxy(
                 }
                 info!("task finished")
             }
-            _ = state.proxy_checker.signal.cancelled() => {
+            _ = held.cancelled() => {
                 info!("task cancelled out");
                 chan.send("cancelled:".into()).unwrap();
             }
@@ -79,6 +80,6 @@ pub async fn check_proxy(
 
 #[tauri::command]
 pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), ()> {
-    state.proxy_checker.signal.cancel();
+    state.proxy_checker.signal.read().await.cancel();
     Ok(())
 }
