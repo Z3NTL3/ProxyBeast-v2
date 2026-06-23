@@ -1,22 +1,27 @@
+use crate::{CancellationToken, SeqCst};
+use http::Uri;
+use proxifier_rs::{Port, ServerName};
 use std::sync::Arc;
-use std::{time::Duration};
-use crate::{SeqCst, CancellationToken};
+use std::time::Duration;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::select;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
-use http::Uri;
 use tracing::info;
-use tokio::select;
-use proxifier_rs::{ServerName, Port};
 
 /*
  * CAUTION: This part is incomplete and still under progressive development.
  */
 #[tauri::command(rename_all = "snake_case")]
-pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan: tauri::ipc::Channel<String>) ->  Result<(),()> {
+pub async fn check_proxy(
+    app: AppHandle,
+    timeout_: u64,
+    proxy_uri: String,
+    chan: tauri::ipc::Channel<String>,
+) -> Result<(), ()> {
     tokio::spawn(async move {
         let app_clone = app.clone();
         let d = Duration::from_millis(timeout_);
@@ -52,10 +57,9 @@ pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan:
                 }
             }
         });
-        let timeout_task = timeout(d, task);
 
+        let timeout_task = timeout(d, task);
         let state = app.state::<crate::AppState>();
-        let signal = state.proxy_checker.signal.lock().await;
 
         select! {
             res = timeout_task => {
@@ -64,7 +68,7 @@ pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan:
                 }
                 info!("task finished")
             }
-            _ = signal.cancelled() => {
+            _ = state.proxy_checker.signal.cancelled() => {
                 info!("task cancelled out");
                 chan.send("cancelled:".into()).unwrap();
             }
@@ -74,7 +78,7 @@ pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan:
 }
 
 #[tauri::command]
-pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(),()>{
-    state.proxy_checker.signal.lock().await.cancel();
+pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), ()> {
+    state.proxy_checker.signal.cancel();
     Ok(())
 }

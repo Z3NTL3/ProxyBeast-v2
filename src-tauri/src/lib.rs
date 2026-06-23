@@ -1,32 +1,32 @@
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
-use tokio::sync::Mutex;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
+use tokio::sync::watch::{channel, Receiver, Sender};
+use tokio::sync::Mutex;
 use tracing::field::Visit;
 use tracing::{info, Subscriber};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, Layer, Registry};
-use std::sync::{Arc, OnceLock};
-use tokio::sync::watch::{Sender, Receiver, channel};
 
 static LIVE_LOGS: &'static str = "live-logs";
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
 struct AppState {
     proxy_checker: ProxyChecker,
-    tls_config: Arc<ClientConfig>
+    tls_config: Arc<ClientConfig>,
 }
 
 // nothing here is final
 struct ProxyChecker {
-    signal: Mutex<CancellationToken>,
-    pipe: (Sender<String>, Receiver<String>)
+    signal: CancellationToken,
+    pipe: (Sender<String>, Receiver<String>),
 }
 
-pub(crate) use tokio_util::sync::CancellationToken;
 pub(crate) use std::sync::atomic::Ordering::SeqCst;
+pub(crate) use tokio_util::sync::CancellationToken;
 pub(crate) mod commands;
 pub(crate) mod events {
     pub const WINDOW_LOADED: &'static str = "window_loaded";
@@ -90,7 +90,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::check_proxy, commands::stop_check])
+        .invoke_handler(tauri::generate_handler![
+            commands::check_proxy,
+            commands::stop_check
+        ])
         .setup(|app| {
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();
             let mut root_cert_store = RootCertStore::empty();
@@ -102,12 +105,15 @@ pub fn run() {
                     .with_no_client_auth(),
             );
 
-            let mut checker = ProxyChecker { signal: Mutex::new(CancellationToken::new()), pipe: channel("null".into())};
+            let mut checker = ProxyChecker {
+                signal: CancellationToken::new(),
+                pipe: channel("null".into()),
+            };
             checker.pipe.1.borrow_and_update(); // consume null
 
-            app.manage(AppState{
+            app.manage(AppState {
                 proxy_checker: checker,
-                tls_config: config
+                tls_config: config,
             });
 
             let subscriber = Registry::default()
