@@ -2724,6 +2724,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "serde_with",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

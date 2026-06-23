@@ -58,14 +58,14 @@ function App() {
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
       <div className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
         {/*logo*/}
-        <div data-tauri-drag-region className="flex items-center gap-2">
-          <img src={logo} />
+        <div data-tauri-drag-region className="flex items-center">
+          <img width={40} src={logo} />
           <h2 className="text-[24px] font-bold">ProxyBeast</h2>
         </div>
         {/*end*/}
 
         {/*version*/}
-        <p className="text-xs text-white/40 mt-2">v{version}</p>
+        <p className="text-xs text-white/40 mt-2 ml-1">v{version}</p>
         {/*end*/}
 
         {/*items*/}

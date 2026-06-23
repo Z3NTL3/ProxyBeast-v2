@@ -1,5 +1,8 @@
 use chrono::Local;
+use http::Uri;
 use proxifier_rs::{ClientConfig, RootCertStore};
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
@@ -17,6 +20,15 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 struct AppState {
     proxy_checker: ProxyChecker,
     tls_config: Arc<ClientConfig>,
+}
+
+#[serde_as]
+#[derive(Serialize)]
+struct Payload {
+    #[serde(deserialize_with = "serde_with::DurationMilliSeconds")]
+    timeout: Duration,
+    #[serde_as(as = "DisplayFromStr")]
+    proxy_uri: Uri,
 }
 
 // nothing here is final

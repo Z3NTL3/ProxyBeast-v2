@@ -3,7 +3,7 @@ use http::Uri;
 use proxifier_rs::{Port, ServerName};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
@@ -22,6 +22,7 @@ pub async fn check_proxy(
     proxy_uri: String,
     chan: tauri::ipc::Channel<String>,
 ) -> Result<(), ()> {
+    let timeout_ = 5; // placeholder
     tokio::spawn(async move {
         let app_clone = app.clone();
         let d = Duration::from_millis(timeout_);
@@ -29,6 +30,9 @@ pub async fn check_proxy(
         // swap later on to proper Ok type
         let task: JoinHandle<()> = tokio::spawn(async move {
             let state = app_clone.state::<crate::AppState>();
+            let pipe = state.proxy_checker.pipe.1.clone();
+
+
             let uri = proxy_uri.parse::<Uri>().unwrap();
 
             match uri.scheme_str().unwrap() {
@@ -85,12 +89,19 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 }
 
 #[tauri::command]
-pub async fn read_file(path: String) -> Result<bool, String> {
+pub async fn read_file(state: State<'_, crate::AppState>, path: String) -> Result<bool, String> {
     let contents = fs::read(path).await.map_err(|err| err.to_string())?;
     let mut lines = contents.lines();
 
     while let Some(line) = lines.next_line().await.map_err(|err| err.to_string())? {
-        println!("line: {line}")
+        state
+            .proxy_checker
+            .pipe
+            .0
+            .clone()
+            .send(line.clone())
+            .map_err(|err| err.to_string())?;
+        info!("proxy: '{line}' sent to worker pool");
     }
 
     Ok(true)

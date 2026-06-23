@@ -14,10 +14,13 @@ export default function Bootstrap() {
   });
 
   return (
-    <div data-tauri-drag-region className="flex flex-col justify-center items-center h-screen w-screen bg-[#13131F] z-50">
+    <div
+      data-tauri-drag-region
+      className="flex flex-col justify-center items-center h-screen w-screen bg-[#13131F] z-50"
+    >
       <div className="px-4 py-3 bg-[#222236]/70 rounded-lg border border-[#808080]/30">
         <img
-          width={26}
+          width={40}
           src={logo}
           style={{
             boxShadow:
@@ -40,6 +43,10 @@ export default function Bootstrap() {
           ></motion.div>
         </div>
       </div>
+
+      <p className="absolute bottom-5 justify-end text-gray-500 text-[12px] text-xs mt-10">
+        SOFTWARE WRITTEN BY REAL HUMANS
+      </p>
     </div>
   );
 }
