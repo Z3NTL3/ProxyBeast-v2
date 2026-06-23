@@ -1,4 +1,5 @@
 use chrono::Local;
+use proxifier_rs::{ClientConfig, RootCertStore};
 use tokio::sync::Mutex;
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
@@ -7,13 +8,21 @@ use tracing::{info, Subscriber};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, Layer, Registry};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
+use tokio::sync::watch::{Sender, Receiver, channel};
 
 static LIVE_LOGS: &'static str = "live-logs";
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
-struct AppState  {
-    proxy_checker: Mutex<CancellationToken>
+struct AppState {
+    proxy_checker: ProxyChecker,
+    tls_config: Arc<ClientConfig>
+}
+
+// nothing here is final
+struct ProxyChecker {
+    signal: Mutex<CancellationToken>,
+    pipe: (Sender<String>, Receiver<String>)
 }
 
 pub(crate) use tokio_util::sync::CancellationToken;
@@ -84,8 +93,21 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![commands::check_proxy, commands::stop_check])
         .setup(|app| {
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();
+            let mut root_cert_store = RootCertStore::empty();
+            root_cert_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+            let config = Arc::new(
+                ClientConfig::builder()
+                    .with_root_certificates(root_cert_store)
+                    .with_no_client_auth(),
+            );
+
+            let mut checker = ProxyChecker { signal: Mutex::new(CancellationToken::new()), pipe: channel("null".into())};
+            checker.pipe.1.borrow_and_update(); // consume null
+
             app.manage(AppState{
-                proxy_checker: Mutex::new(CancellationToken::new())
+                proxy_checker: checker,
+                tls_config: config
             });
 
             let subscriber = Registry::default()
@@ -129,6 +151,9 @@ pub fn run() {
                 let bootstrap_ = boot_window.clone();
                 let main_ = main.clone();
 
+                // tweak application loader so that progress bar is realtime.
+                // FOR EXAMPLE: oneshot channel that measures every 200 milisecond and based on time duration
+                // it calculates progress percentage, when reaching WINDOW_LOADED, it's calculated to a 1:1 ratio in 0-100%
                 async_runtime::spawn(async move {
                     for num in vec![
                         rand::random_range(0.0..=0.2),

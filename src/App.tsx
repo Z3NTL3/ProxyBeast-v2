@@ -21,7 +21,7 @@ function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
   let [version, setVersion] = useState<string>("1.0.0");
 
-  useLoad();
+  let loaded = useLoad();
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const activity = listen("activity", (ev) => {
@@ -40,6 +40,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    console.log("loaded", loaded)
+    if (!loaded)
+      return
+
     const onEvent = new Channel<String>();
     onEvent.onmessage = (message) => {
       console.log(`got download event ${message}`);
@@ -47,11 +51,11 @@ function App() {
 
     invoke('check_proxy', {
       timeout: 6000,
-      proxyUri: "socks5://adsdadsasdqw123:adasdasdas@23.27.184.40:5641",
+      proxy_uri: "socks5://adsdadsasdqw123:adasdasdas@23.27.184.40:5641",
       chan: onEvent,
     }).then(console.info);
 
-  }, [])
+  }, [loaded])
 
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">

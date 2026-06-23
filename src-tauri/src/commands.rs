@@ -5,58 +5,42 @@ use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
+use tokio::task::JoinHandle;
 use tokio::time::timeout;
 use http::Uri;
 use tracing::info;
 use tokio::select;
-use proxifier_rs::{RootCertStore,ClientConfig,ServerName, Port};
+use proxifier_rs::{ServerName, Port};
 
 /*
  * CAUTION: This part is incomplete and still under progressive development.
  */
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan: tauri::ipc::Channel<String>) ->  Result<(),()> {
     tokio::spawn(async move {
         let app_clone = app.clone();
         let d = Duration::from_millis(timeout_);
 
-        let task = tokio::spawn(async move {
-            info!("running task on mt runtime in parallel");
-
-            info!("parsing");
+        // swap later on to proper Ok type
+        let task: JoinHandle<()> = tokio::spawn(async move {
+            let state = app_clone.state::<crate::AppState>();
             let uri = proxy_uri.parse::<Uri>().unwrap();
-            info!("parsed");
 
             match uri.scheme_str().unwrap() {
-                "http" | "https" => {
-
-                },
-                "socks4" => {
-
-                }
+                "http" => {},
+                "https" => {},
+                "socks4" => {},
                 "socks5" => {
-                    info!("entered socks5 branch");
-
-
-                    let mut root_cert_store = RootCertStore::empty();
-                    root_cert_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
-                    let config = Arc::new(
-                        ClientConfig::builder()
-                            .with_root_certificates(root_cert_store)
-                            .with_no_client_auth(),
-                    );
-
                     let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
                         proxifier_rs::Context {
                             proxy: "23.27.184.40:5641".parse().unwrap(),
-                            destination: proxifier_rs::NetworkTarget::Domain("httpbin.org".parse().unwrap(), Port(443)),
+                            destination: proxifier_rs::NetworkTarget::Domain("pool.proxyspace.pro".parse().unwrap(), Port(443)),
                         },
                         proxifier_rs::auth::Auth::UserPass("adsdadsasdqw123".into(), "adasdasdas".into()), // or Auth::NoAuth
                     )
-                    .await.unwrap(), config, ServerName::try_from("httpbin.org").unwrap()).await.unwrap();
+                    .await.unwrap(), state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro").unwrap()).await.unwrap();
 
-                    conn.write(b"GET /headers HTTP/1.1\r\nHost: httpbin.org:443\r\nConnection: close\r\n\r\n")
+                    conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
                         .await.unwrap();
 
                     let mut resp = String::new();
@@ -71,7 +55,7 @@ pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan:
         let timeout_task = timeout(d, task);
 
         let state = app.state::<crate::AppState>();
-        let held = state.proxy_checker.lock().await;
+        let signal = state.proxy_checker.signal.lock().await;
 
         select! {
             res = timeout_task => {
@@ -80,8 +64,9 @@ pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan:
                 }
                 info!("task finished")
             }
-            _ = held.cancelled() => {
-                info!("task cancelled out")
+            _ = signal.cancelled() => {
+                info!("task cancelled out");
+                chan.send("cancelled:".into()).unwrap();
             }
         }
     }).await.unwrap();
@@ -90,6 +75,6 @@ pub async fn check_proxy(app: AppHandle, timeout_: u64, proxy_uri: String, chan:
 
 #[tauri::command]
 pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(),()>{
-    state.proxy_checker.lock().await.cancel();
+    state.proxy_checker.signal.lock().await.cancel();
     Ok(())
 }
