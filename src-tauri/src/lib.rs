@@ -25,7 +25,6 @@ struct ProxyChecker{
     pipe: (Sender<String>, Receiver<String>),
 }
 
-pub(crate) use std::sync::atomic::Ordering::SeqCst;
 pub(crate) use tokio_util::sync::CancellationToken;
 pub(crate) mod commands;
 pub(crate) mod events {

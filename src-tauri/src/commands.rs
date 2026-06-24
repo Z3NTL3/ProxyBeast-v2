@@ -28,16 +28,17 @@ pub async fn check_proxy_list(
             let mut pipe = state.proxy_checker.pipe.1.clone();
 
             pipe.changed().await?;
-            let proxy: String = pipe.borrow_and_update().to_string(); // *pipe.borrow_and_update() -> cannot be held accross .await as per docs
+            let proxy: String = pipe.borrow_and_update().to_string(); // *pipe.borrow_and_update() -> cannot be held accross .await as noted by docs
             let uri = proxy.parse::<Url>()?;
 
             info!("recv: {:?}", proxy);
+
+            let mut auth = Auth::NoAuth;
             match uri.scheme() {
                 "http" => {},
                 "https" => {},
                 "socks4" => {},
                 "socks5" => {
-                    let mut auth = Auth::NoAuth;
                     if let Some(pass) = uri.password() {
                         auth = Auth::UserPass(uri.username().into(), pass.into())
                     }
@@ -63,7 +64,7 @@ pub async fn check_proxy_list(
                     info!("network ack: {:?}", resp);
                 }
                 _  => {
-                    info!("scheme {:?}", uri);
+                    info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
                 }
             }
             Ok(())
