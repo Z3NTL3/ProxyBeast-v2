@@ -82,7 +82,6 @@ pub async fn check_proxy_list(
                         None => { error!("missing port in URI"); return Ok(()); }
                     };
 
-                    // Attempt the connection and operations
                     let result: anyhow::Result<()> = async {
                         let proxy_addr = format!("{}:{}", host, port).parse()?;
 
