@@ -19,7 +19,6 @@ struct AppState {
     tls_config: Arc<ClientConfig>,
 }
 
-// nothing here is final
 struct ProxyChecker{
     signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
