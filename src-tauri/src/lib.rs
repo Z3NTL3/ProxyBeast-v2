@@ -1,8 +1,5 @@
 use chrono::Local;
-use http::Uri;
 use proxifier_rs::{ClientConfig, RootCertStore};
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
@@ -22,17 +19,8 @@ struct AppState {
     tls_config: Arc<ClientConfig>,
 }
 
-#[serde_as]
-#[derive(Serialize)]
-struct Payload {
-    #[serde(deserialize_with = "serde_with::DurationMilliSeconds")]
-    timeout: Duration,
-    #[serde_as(as = "DisplayFromStr")]
-    proxy_uri: Uri,
-}
-
 // nothing here is final
-struct ProxyChecker {
+struct ProxyChecker{
     signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
 }
@@ -103,7 +91,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            commands::check_proxy,
+            commands::check_proxy_list,
             commands::stop_check,
             commands::read_file
         ])
@@ -120,9 +108,9 @@ pub fn run() {
 
             let mut checker = ProxyChecker {
                 signal: RwLock::new(CancellationToken::new()),
-                pipe: channel("null".into()),
+                pipe: channel("".into()),
             };
-            checker.pipe.1.borrow_and_update(); // consume null
+            checker.pipe.1.borrow_and_update();
 
             app.manage(AppState {
                 proxy_checker: checker,

@@ -3,7 +3,7 @@ name = "proxybeast-v2"
 version = "0.1.5"
 description = "The ultimate proxy checker"
 authors = ["z3ntl3"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -33,3 +33,5 @@ tokio-util = "0.7.18"
 http = "1.4.2"
 webpki-roots = "1.0.8"
 serde_with = { version = "3.21.0", features = ["macros"] }
+url = "2.5.8"
+anyhow = "1.0.102"

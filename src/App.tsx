@@ -38,21 +38,17 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    console.log("loaded", loaded);
-    if (!loaded) return;
-
+  const dostuff = () => {
     const onEvent = new Channel<String>();
     onEvent.onmessage = (message) => {
       console.log(`got download event ${message}`);
     };
 
-    invoke("check_proxy", {
+    invoke("check_proxy_list", {
       timeout: 6000,
-      proxy_uri: "socks5://adsdadsasdqw123:adasdasdas@23.27.184.40:5641",
       chan: onEvent,
     }).then(console.info);
-  }, [loaded]);
+  }
 
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
@@ -191,7 +187,7 @@ function App() {
               </div>
             </div>
 
-            <div className="cursor-pointer flex items-center gap-x-1 text-sm justify-center bg-[#0A84FF] w-full ml-2 rounded-lg p-4 mt-5 text-center font-semibold">
+            <div onClick={() => dostuff()} className="cursor-pointer flex items-center gap-x-1 text-sm justify-center bg-[#0A84FF] w-full ml-2 rounded-lg p-4 mt-5 text-center font-semibold">
               <TiMediaPlayOutline size={20} />
               Start Check
             </div>

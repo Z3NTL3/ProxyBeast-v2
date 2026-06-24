@@ -2718,6 +2718,7 @@ dependencies = [
 name = "proxybeast-v2"
 version = "0.1.5"
 dependencies = [
+ "anyhow",
  "chrono",
  "http",
  "proxifier-rs",
@@ -2733,6 +2734,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "url",
  "webpki-roots",
 ]
 

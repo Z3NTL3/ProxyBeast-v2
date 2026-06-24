@@ -1,65 +1,72 @@
-use crate::{CancellationToken, SeqCst};
-use http::Uri;
-use proxifier_rs::{Port, ServerName};
-use std::sync::Arc;
+use proxifier_rs::auth::Auth;
+use url::Url;
+use proxifier_rs::{NetworkTarget, Port, ServerName};
 use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
-use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
 use tokio::{fs, select};
 use tracing::info;
+use anyhow::anyhow;
 
 /*
  * CAUTION: This part is incomplete and still under progressive development.
  */
 #[tauri::command(rename_all = "snake_case")]
-pub async fn check_proxy(
+pub async fn check_proxy_list(
     app: AppHandle,
     timeout_: u64,
-    proxy_uri: String,
     chan: tauri::ipc::Channel<String>,
 ) -> Result<(), ()> {
-    let timeout_ = 5; // placeholder
     tokio::spawn(async move {
         let app_clone = app.clone();
         let d = Duration::from_millis(timeout_);
 
-        // swap later on to proper Ok type
-        let task: JoinHandle<()> = tokio::spawn(async move {
+        let task: JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
             let state = app_clone.state::<crate::AppState>();
-            let pipe = state.proxy_checker.pipe.1.clone();
+            let mut pipe = state.proxy_checker.pipe.1.clone();
 
+            pipe.changed().await?;
+            let proxy: String = pipe.borrow_and_update().to_string(); // *pipe.borrow_and_update() -> cannot be held accross .await as per docs
+            let uri = proxy.parse::<Url>()?;
 
-            let uri = proxy_uri.parse::<Uri>().unwrap();
-
-            match uri.scheme_str().unwrap() {
+            info!("recv: {:?}", proxy);
+            match uri.scheme() {
                 "http" => {},
                 "https" => {},
                 "socks4" => {},
                 "socks5" => {
+                    let mut auth = Auth::NoAuth;
+                    if let Some(pass) = uri.password() {
+                        auth = Auth::UserPass(uri.username().into(), pass.into())
+                    }
+
                     let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
                         proxifier_rs::Context {
-                            proxy: "23.27.184.40:5641".parse().unwrap(),
-                            destination: proxifier_rs::NetworkTarget::Domain("pool.proxyspace.pro".parse().unwrap(), Port(443)),
+                            proxy: format!("{}:{}",
+                                uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?.to_string()
+                            ).parse()?,
+                            // make it so that judges are configurable, not supported yet
+                            destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
                         },
-                        proxifier_rs::auth::Auth::UserPass("adsdadsasdqw123".into(), "adasdasdas".into()), // or Auth::NoAuth
+                        auth,
                     )
-                    .await.unwrap(), state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro").unwrap()).await.unwrap();
+                    .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
 
                     conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
-                        .await.unwrap();
+                        .await?;
 
                     let mut resp = String::new();
-                    conn.read_to_string(&mut resp).await.unwrap();
+                    conn.read_to_string(&mut resp).await?;
                     info!("network ack: {:?}", resp);
                 }
                 _  => {
                     info!("scheme {:?}", uri);
                 }
             }
+            Ok(())
         });
 
         let timeout_task = timeout(d, task);
@@ -70,8 +77,11 @@ pub async fn check_proxy(
             res = timeout_task => {
                 if let Err(err) = res {
                     info!("task timed out {:?}", err)
+                    } else if let Ok(Ok(v)) = res {
+                    let b = v;
                 }
-                info!("task finished")
+
+                info!("task finished");
             }
             _ = held.cancelled() => {
                 info!("task cancelled out");
@@ -89,20 +99,22 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 }
 
 #[tauri::command]
-pub async fn read_file(state: State<'_, crate::AppState>, path: String) -> Result<bool, String> {
+pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> {
     let contents = fs::read(path).await.map_err(|err| err.to_string())?;
-    let mut lines = contents.lines();
+    tokio::spawn(async move {
+        let mut lines = contents.lines();
 
-    while let Some(line) = lines.next_line().await.map_err(|err| err.to_string())? {
-        state
-            .proxy_checker
-            .pipe
-            .0
-            .clone()
-            .send(line.clone())
-            .map_err(|err| err.to_string())?;
-        info!("proxy: '{line}' sent to worker pool");
-    }
-
+        while let Some(line) = lines.next_line().await.ok().flatten() {
+            let _ = handle.state::<crate::AppState>()
+                .proxy_checker
+                .pipe
+                .0
+                .send(line)
+                .map_err(|err| {
+                    info!("err while sending: {err}");
+                    err.to_string()
+                });
+        }
+    });
     Ok(true)
 }
