@@ -10,12 +10,6 @@ use tokio::{fs, select};
 use tracing::{info, error};
 use anyhow::anyhow;
 
-#[derive(Debug)]
-struct Ack {
-    /// As [`core::time::Duration::as_millis`]
-    proxy: String,
-    latency: u128
-}
 
 /// Checks all proxies in provided proxy list.
 /// To start proxy checking first invoke [`read_file`] and then [`check_proxy_list`].
@@ -44,12 +38,19 @@ pub async fn check_proxy_list(
     let d = Duration::from_millis(timeout_);
     let app_clone = app.clone();
 
-    let task: JoinHandle<anyhow::Result<Ack>> = tokio::spawn(async move {
+    let task: JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
         let state = app_clone.state::<crate::AppState>();
-        let mut pipe = state.proxy_checker.pipe.1.clone();
+        let mut pipe = state.proxy_checker.pipe.1.lock().await;
 
-        pipe.changed().await?;
-        let proxy: String = pipe.borrow_and_update().to_string(); // *pipe.borrow_and_update() -> cannot be held accross .await as noted by docs
+
+        // let proxy: String = pipe.recv().await.ok_or_else(|| anyhow!("failed retrieving from pipe"))?;
+        let proxy = match pipe.recv().await {
+            Some(p) => p,
+            None => {
+                error!("failed retrieving from pipe");
+                return Ok(());
+            }
+        };
         let uri = proxy.parse::<Url>()?;
 
         info!("recv: {:?}", proxy);
@@ -89,7 +90,7 @@ pub async fn check_proxy_list(
                 info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
             }
         }
-        Ok(Ack { proxy, latency: now.elapsed().as_millis() })
+        return Ok(())
     });
 
     let timeout_task = timeout(d, task);
@@ -108,7 +109,7 @@ pub async fn check_proxy_list(
                     }
                     Ok(res) => match res {
                         Err(err) => error!("proxy error: {:?}", err),
-                        Ok(ack) => info!("ack: {:?}", ack),
+                        Ok(ack) => {},
                     }
                 }
             }
@@ -138,7 +139,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
                 .proxy_checker
                 .pipe
                 .0
-                .send(line)
+                .send(line).await
                 .map_err(|err| {
                     info!("err while sending: {err}");
                     err.to_string()

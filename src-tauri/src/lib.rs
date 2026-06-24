@@ -3,7 +3,7 @@ use proxifier_rs::{ClientConfig, RootCertStore};
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
-use tokio::sync::watch::{channel, Receiver, Sender};
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::{Mutex, RwLock};
 use tracing::field::Visit;
 use tracing::{info, Subscriber};
@@ -21,7 +21,7 @@ struct AppState {
 
 struct ProxyChecker{
     signal: RwLock<CancellationToken>,
-    pipe: (Sender<String>, Receiver<String>),
+    pipe: (Sender<String>, Mutex<Receiver<String>>),
 }
 
 pub(crate) use tokio_util::sync::CancellationToken;
@@ -104,11 +104,12 @@ pub fn run() {
                     .with_no_client_auth(),
             );
 
-            let mut checker = ProxyChecker {
+            let (t, r) = channel(100);
+            let checker = ProxyChecker {
                 signal: RwLock::new(CancellationToken::new()),
-                pipe: channel("".into()),
+                pipe: (t, Mutex::new(r)),
             };
-            checker.pipe.1.borrow_and_update();
+            // checker.pipe.1.borrow_and_update();
 
             app.manage(AppState {
                 proxy_checker: checker,
