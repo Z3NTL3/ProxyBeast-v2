@@ -5,10 +5,17 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::task::JoinHandle;
-use tokio::time::timeout;
+use tokio::time::{Instant, timeout};
 use tokio::{fs, select};
 use tracing::info;
 use anyhow::anyhow;
+
+#[derive(Debug)]
+struct Ack {
+    /// As [`core::time::Duration::as_millis`]
+    proxy: String,
+    latency: u128
+}
 
 /*
  * CAUTION: This part is incomplete and still under progressive development.
@@ -23,7 +30,7 @@ pub async fn check_proxy_list(
         let app_clone = app.clone();
         let d = Duration::from_millis(timeout_);
 
-        let task: JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
+        let task: JoinHandle<anyhow::Result<Ack>> = tokio::spawn(async move {
             let state = app_clone.state::<crate::AppState>();
             let mut pipe = state.proxy_checker.pipe.1.clone();
 
@@ -34,6 +41,7 @@ pub async fn check_proxy_list(
             info!("recv: {:?}", proxy);
 
             let mut auth = Auth::NoAuth;
+            let now = Instant::now();
             match uri.scheme() {
                 "http" => {},
                 "https" => {},
@@ -67,7 +75,7 @@ pub async fn check_proxy_list(
                     info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
                 }
             }
-            Ok(())
+            Ok(Ack { proxy, latency: now.elapsed().as_millis() })
         });
 
         let timeout_task = timeout(d, task);
@@ -78,10 +86,9 @@ pub async fn check_proxy_list(
             res = timeout_task => {
                 if let Err(err) = res {
                     info!("task timed out {:?}", err)
-                    } else if let Ok(Ok(v)) = res {
-                    let b = v;
+                } else if let Ok(Ok(Ok(latency))) = res {
+                        info!("proxy latency {:?}", latency);
                 }
-
                 info!("task finished");
             }
             _ = held.cancelled() => {
