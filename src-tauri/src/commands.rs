@@ -104,7 +104,7 @@ pub async fn check_proxy_list(
                 select! {
                     res = task => {
                         if let Err(err) = res {
-                            error!("err: {:?}", err)
+                            error!("task aborted because it timed out: {:?}", err)
                         }
                         info!("task finished")
                     }
