@@ -1,5 +1,6 @@
+#![allow(unused)]
+use anyhow::anyhow;
 use proxifier_rs::auth::Auth;
-use url::Url;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
 use std::net::SocketAddrV4;
 use std::time::Duration;
@@ -8,35 +9,34 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
 use tokio::{fs, select};
-use tracing::{info, error};
-use anyhow::{anyhow};
+use tracing::{error, info};
+use url::Url;
 
 #[derive(Debug)]
 struct Ack {
-    /// As [`core::time::Duration::as_millis`]
     proxy: String,
-    latency: u128
+    /// Latency in miliseconds [`core::time::Duration::as_millis`]
+    latency: u128,
 }
 
-
-/// Checks all proxies in provided proxy list.
-/// To start proxy checking first invoke [`read_file`] and then [`check_proxy_list`].
+/// Invoke this tauri command by [`check_proxy_list`] to initiate proxy checking, beaware that [`read_file`] must be called prior.
 ///
-/// Proxies are send through a buffered/bounded channel to the worker pool.
-/// Worker pool performs network I/O on multithreaded async runtime.
+/// - [`read_file`] feeds proxy URIs non-blockin and asynchronously through a multi producer multi consumer [`async_channel::bounded`] channel.
+/// - [`check_proxy_list`] consumes the feed after the user presses `Start Check` from GUI to invoke [`check_proxy_list`]
 ///
-/// There are Tracing layers and Tauri channels responsible for process scommunication between core backend and GUI.
+/// This command will exit instantly if no messages are found in the pipe. GUI is alerts the user to upload a proxy list file first.
 ///
-/// # Cancel safety
-/// This operation is cancel safe via [`tokio_util::sync::CancellationToken`]
+/// # Arguments
+/// - timeout: Timeout in miliseconds for each task to complete, acts as max timeout for each proxy being asserted.
 ///
-/// A `CancellationToken` will be revoked via [`tokio::RWLock`] when unified termination takes place. So that a new operation can be started
+/// # Stop ongoing operation
+/// Press `Stop Check` from the GUI, for more details read paragraph "Cancel Safety"
 ///
-/// # Bounded watch
-/// - We need a multi producer multi consumer channel that is Send + Sync.
+/// # Cancel Safety
+/// - Safety via [`tokio_util::sync::CancellationToken>`]
 ///
-/// Initial Receiver is always cloned rather than subscribed, as we can't guarantee that receiver subscribers are initialized prior to sent messages.
-/// - The Receiver implements Clone and is Send + Sync, therefore fits in our use case.
+/// This Tauri command is cancel safe. Invoke [`stop_check`] to gracefully terminate all ongoing operations on the multithreaded async runtime.
+/// The user invokes this by pressing `Stop Check` button in the GUI.
 #[tauri::command(rename_all = "snake_case")]
 pub async fn check_proxy_list(
     app: AppHandle,
@@ -44,7 +44,6 @@ pub async fn check_proxy_list(
     chan: tauri::ipc::Channel<String>,
 ) -> Result<(), ()> {
     let d = Duration::from_millis(timeout_);
-
     let _ = tokio::spawn(async move {
         let state = app.state::<crate::AppState>();
 
@@ -133,11 +132,13 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
         let mut lines = contents.lines();
 
         while let Some(line) = lines.next_line().await.ok().flatten() {
-            let _ = handle.state::<crate::AppState>()
+            let _ = handle
+                .state::<crate::AppState>()
                 .proxy_checker
                 .pipe
                 .0
-                .send(line).await
+                .send(line)
+                .await
                 .map_err(|err| {
                     info!("err while sending: {err}");
                     err.to_string()

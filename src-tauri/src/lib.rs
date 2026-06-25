@@ -1,15 +1,15 @@
+use async_channel::{Receiver, Sender, bounded};
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
-use tauri::{async_runtime, AppHandle, Emitter, Listener, Manager};
-use async_channel::{bounded, Receiver, Sender};
-use tokio::sync::{Mutex, RwLock};
+use tauri::{AppHandle, Emitter, Listener, Manager, async_runtime};
+use tokio::sync::RwLock;
 use tracing::field::Visit;
-use tracing::{info, Subscriber};
+use tracing::{Subscriber, info};
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::{fmt, Layer, Registry};
+use tracing_subscriber::{Layer, Registry, fmt};
 
 static LIVE_LOGS: &'static str = "live-logs";
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
@@ -19,7 +19,7 @@ struct AppState {
     tls_config: Arc<ClientConfig>,
 }
 
-struct ProxyChecker{
+struct ProxyChecker {
     signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
 }
