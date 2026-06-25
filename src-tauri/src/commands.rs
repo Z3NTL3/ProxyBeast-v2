@@ -9,7 +9,14 @@ use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
 use tokio::{fs, select};
 use tracing::{info, error};
-use anyhow::anyhow;
+use anyhow::{anyhow};
+
+#[derive(Debug)]
+struct Ack {
+    /// As [`core::time::Duration::as_millis`]
+    proxy: String,
+    latency: u128
+}
 
 
 /// Checks all proxies in provided proxy list.
@@ -37,106 +44,79 @@ pub async fn check_proxy_list(
     chan: tauri::ipc::Channel<String>,
 ) -> Result<(), ()> {
     let d = Duration::from_millis(timeout_);
-    let app_clone = app.clone();
 
-    let task: JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
-        let state = app_clone.state::<crate::AppState>();
-        let mut pipe = state.proxy_checker.pipe.1.lock().await;
+    let _ = tokio::spawn(async move {
+        let state = app.state::<crate::AppState>();
 
-        while !pipe.is_empty() {
-            let proxy = match pipe.recv().await {
-                Some(v) => v,
-                None => {
-                    error!("failed retrieving from pipe");
-                    return Ok(());
-                }
-            };
+        while !state.proxy_checker.pipe.1.is_empty() {
+            let app_clone = app.clone();
+            tokio::spawn(async move {
+                let state = app_clone.state::<crate::AppState>();
+                let task = timeout(d, async {
+                    let result: anyhow::Result<Ack> = async {
+                        let proxy = state.proxy_checker.pipe.1.recv().await?;
+                        let uri = proxy.parse::<Url>()?;
 
-            let uri = match proxy.parse::<Url>() {
-                Ok(v) => v,
-                Err(err) => {
-                    error!("failed parsing proxy URI {}: {}", proxy, err);
-                    return Ok(());
-                }
-            };
+                        info!("recv: {:?}", proxy);
 
-            info!("recv: {:?}", proxy);
+                        let mut auth = Auth::NoAuth;
+                        let now = Instant::now();
+                        match uri.scheme() {
+                            "http" => todo!(),
+                            "https" => todo!(),
+                            "socks4" => todo!(),
+                            "socks5" => {
+                                if let Some(pass) = uri.password() {
+                                    auth = Auth::UserPass(uri.username().into(), pass.into())
+                                }
 
-            let mut auth = Auth::NoAuth;
-            let now = Instant::now();
-            match uri.scheme() {
-                "http" => {},
-                "https" => {},
-                "socks4" => {},
-                "socks5" => {
-                    if let Some(pass) = uri.password() {
-                        auth = Auth::UserPass(uri.username().into(), pass.into())
-                    }
-                    // Safely extract host and port
-                    let host = match uri.host_str() {
-                        Some(h) => h,
-                        None => { error!("missing host in URI"); return Ok(()); }
-                    };
-                    let port = match uri.port() {
-                        Some(p) => p,
-                        None => { error!("missing port in URI"); return Ok(()); }
-                    };
+                                let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
+                                    proxifier_rs::Context {
+                                        proxy: format!("{}:{}",
+                                            uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                            uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?.to_string()
+                                        ).parse()?,
+                                        // make it so that judges are configurable, not supported yet
+                                        destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
+                                    },
+                                    auth,
+                                )
+                                .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
 
-                    let result: anyhow::Result<()> = async {
-                        let proxy_addr = format!("{}:{}", host, port).parse()?;
+                                conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                    .await?;
 
-                        let mut conn = proxifier_rs::socks_with_tls(
-                            proxifier_rs::socks5::connect(
-                                proxifier_rs::Context {
-                                    proxy: proxy_addr,
-                                    destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
-                                },
-                                auth,
-                            ).await?,
-                            state.tls_config.clone(),
-                            ServerName::try_from("pool.proxyspace.pro")?
-                        ).await?;
+                                let mut resp = String::new();
+                                conn.read_to_string(&mut resp).await?;
+                                info!("network ack: {:?}", resp);
+                            }
+                            _  => {
+                                info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
+                            }
+                        }
 
-                        conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
-                            .await?;
-
-                        let mut resp = String::new();
-                        conn.read_to_string(&mut resp).await?;
-                        info!("network ack: {:?}", resp);
-
-                        Ok(())
+                        Ok(Ack { proxy, latency: now.elapsed().as_millis() })
                     }.await;
+                    // todo
+                });
 
-                    if let Err(e) = result {
-                        error!("SOCKS5 proxy task failed: {:?}", e);
+                let sig = state.proxy_checker.signal.read().await;
+                select! {
+                    res = task => {
+                        if let Err(err) = res {
+                            error!("err: {:?}", err)
+                        }
+                        info!("task finished")
                     }
-                }
-                _  => {
-                    info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
-                }
-            };
+
+                    _ = sig.cancelled() => {
+                         info!("task was cancelled")
+                    }
+                };
+            });
+
         };
-
-        Ok(())
-    });
-
-    let timeout_task = timeout(d, task);
-    let state = app.state::<crate::AppState>();
-    let held = state.proxy_checker.signal.read().await;
-
-    select! {
-        res = timeout_task => {
-            if let Err(err) = res {
-                    error!("task timed out {:?}", err);
-            }
-
-            info!("task finished");
-        }
-        _ = held.cancelled() => {
-            info!("task cancelled out");
-            chan.send("cancelled:".into()).unwrap();
-        }
-    }
+    }).await;
     Ok(())
 }
 

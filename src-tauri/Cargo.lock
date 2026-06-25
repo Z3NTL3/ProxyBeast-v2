@@ -2719,6 +2719,7 @@ name = "proxybeast-v2"
 version = "0.1.5"
 dependencies = [
  "anyhow",
+ "async-channel",
  "chrono",
  "http",
  "proxifier-rs",
