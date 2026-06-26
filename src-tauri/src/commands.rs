@@ -81,6 +81,7 @@ pub async fn check_proxy_list(
 
         let mut tasks: Vec<JoinHandle<()>> = vec![];
         if !state.proxy_checker.pipe.1.is_empty() {
+            info!("worker pool starting");
             chan.send("proxy-checker:start".into());
         }
 
@@ -99,7 +100,7 @@ pub async fn check_proxy_list(
                                 let proxy = &proxy;
                                 let uri = proxy.parse::<Url>()?;
 
-                                //info!("recv: {:?}", proxy);
+                                info!("proxy recv: {:?}", proxy);
 
                                 let mut auth = Auth::NoAuth;
                                 let now = Instant::now();
@@ -130,7 +131,7 @@ pub async fn check_proxy_list(
 
                                         let mut resp = String::new();
                                         conn.read_to_string(&mut resp).await?;
-                                        //info!("network ack: {:?}", resp);
+                                        info!("network ack: {:?}", resp);
                                     }
                                     _  => {
                                         //info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
@@ -146,13 +147,13 @@ pub async fn check_proxy_list(
                         select! {
                             res = task => {
                                 if let Err(err) = res {
-                                    //error!("task aborted because it timed out: {:?}", err)
+                                    error!("task aborted because it timed out: {:?}", err)
                                 }
-                                //info!("task finished")
+                                info!("task finished")
                             }
 
                             _ = sig.cancelled() => {
-                                 //info!("task was cancelled")
+                                 info!("task was cancelled")
                             }
                         };
                     }
@@ -172,7 +173,7 @@ pub async fn check_proxy_list(
         // op done
         state.proxy_checker.fd_state.store(false, SeqCst);
         state.proxy_checker.workers_state.store(false, SeqCst);
-        error!("end");
+        info!("worker pool OP completion");
         chan.send("proxy-checker:end".into());
     });
     Ok(())

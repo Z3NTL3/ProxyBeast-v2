@@ -51,10 +51,10 @@ function App() {
       console.log(message)
       switch (message) {
         case "proxy-checker:end":
-          setDidStart(false);
+          setDidStart((_) => false);
           break;
         case "proxy-checker:start":
-          setDidStart(true);
+          setDidStart((_) => true);
           break;
       }
     };
