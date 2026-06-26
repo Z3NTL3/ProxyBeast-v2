@@ -21,6 +21,7 @@ struct AppState {
 }
 
 struct ProxyChecker {
+    file_set: AtomicBool,
     ongoing: AtomicBool,
     signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
@@ -108,6 +109,7 @@ pub fn run() {
             );
 
             let checker = ProxyChecker {
+                file_set: AtomicBool::new(false),
                 ongoing: AtomicBool::new(false),
                 signal: RwLock::new(CancellationToken::new()),
                 pipe: bounded(100),

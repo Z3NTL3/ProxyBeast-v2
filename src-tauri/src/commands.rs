@@ -3,19 +3,20 @@ use anyhow::anyhow;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
 use std::net::SocketAddrV4;
+use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
-use tokio::{fs, select};
+use tokio::{fs, join, select};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use url::Url;
 
 #[derive(Debug)]
-struct Ack {
-    proxy: String,
+struct Ack<'a> {
+    proxy: &'a str,
     /// Latency in miliseconds [`core::time::Duration::as_millis`]
     latency: u128,
 }
@@ -51,19 +52,21 @@ pub async fn check_proxy_list(
     chan: tauri::ipc::Channel<String>,
 ) -> Result<(), ()> {
     let d = Duration::from_millis(timeout_);
-    let _ = tokio::spawn(async move {
+    tokio::spawn(async move {
         let state = app.state::<crate::AppState>();
         let reinit = {
             let mut rlock = state.proxy_checker.signal.read().await;
+            if !rlock.is_cancelled() && state.proxy_checker.ongoing.load(SeqCst) {
+                return;
+            }
 
             if rlock.is_cancelled() {
                 info!("cancelled");
                 while !state.proxy_checker.pipe.1.is_empty() {
                     // drain
+                    info!("draining pipe");
                     state.proxy_checker.pipe.1.try_recv();
                 }
-
-                info!("drained");
                 true
             } else {
                 false
@@ -75,79 +78,95 @@ pub async fn check_proxy_list(
             *wlock = CancellationToken::new();
             info!("reinitialized parent CancellationToken");
 
-            chan.send(format!("{}:re-invoke", crate::events::REINIT));
+            chan.send("proxy-checker:end".into());
             return;
         }
 
+        let mut tasks: Vec<JoinHandle<()>> = vec![];
         while !state.proxy_checker.pipe.1.is_empty() {
             let app_clone = app.clone();
-            tokio::spawn(async move {
+            let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
-                let task = timeout(d, async {
-                    let result: anyhow::Result<Ack> = async {
-                        let proxy = state.proxy_checker.pipe.1.recv().await?;
-                        let uri = proxy.parse::<Url>()?;
+                let proxy = state.proxy_checker.pipe.1.recv().await;
+                if proxy.is_ok() {
+                    let proxy = proxy.unwrap();
+                    let task = timeout(d, async {
+                        let result: anyhow::Result<Ack> = async {
+                            let proxy = &proxy;
+                            let uri = proxy.parse::<Url>()?;
 
-                        info!("recv: {:?}", proxy);
+                            info!("recv: {:?}", proxy);
 
-                        let mut auth = Auth::NoAuth;
-                        let now = Instant::now();
-                        match uri.scheme() {
-                            "http" => todo!(),
-                            "https" => todo!(),
-                            "socks4" => todo!(),
-                            "socks5" => {
-                                if let Some(pass) = uri.password() {
-                                    auth = Auth::UserPass(uri.username().into(), pass.into())
+                            let mut auth = Auth::NoAuth;
+                            let now = Instant::now();
+                            match uri.scheme() {
+                                "http" => todo!(),
+                                "https" => todo!(),
+                                "socks4" => todo!(),
+                                "socks5" => {
+                                    if let Some(pass) = uri.password() {
+                                        auth = Auth::UserPass(uri.username().into(), pass.into())
+                                    }
+
+                                    let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
+                                        proxifier_rs::Context {
+                                            proxy: format!("{}:{}",
+                                                uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                                uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?.to_string()
+                                            ).parse()?,
+                                            // make it so that judges are configurable, not supported yet
+                                            destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
+                                        },
+                                        auth,
+                                    )
+                                    .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
+
+                                    conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                        .await?;
+
+                                    let mut resp = String::new();
+                                    conn.read_to_string(&mut resp).await?;
+                                    info!("network ack: {:?}", resp);
                                 }
-
-                                let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
-                                    proxifier_rs::Context {
-                                        proxy: format!("{}:{}",
-                                            uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
-                                            uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?.to_string()
-                                        ).parse()?,
-                                        // make it so that judges are configurable, not supported yet
-                                        destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
-                                    },
-                                    auth,
-                                )
-                                .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
-
-                                conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
-                                    .await?;
-
-                                let mut resp = String::new();
-                                conn.read_to_string(&mut resp).await?;
-                                info!("network ack: {:?}", resp);
+                                _  => {
+                                    //info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
+                                }
                             }
-                            _  => {
-                                info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
+
+                            Ok(Ack { proxy, latency: now.elapsed().as_millis() })
+                        }.await;
+                        // todo
+                    });
+
+                    let sig = state.proxy_checker.signal.read().await;
+                    select! {
+                        res = task => {
+                            if let Err(err) = res {
+                                error!("task aborted because it timed out: {:?}", err)
                             }
+                            info!("task finished")
                         }
 
-                        Ok(Ack { proxy, latency: now.elapsed().as_millis() })
-                    }.await;
-                    // todo
-                });
-
-                let sig = state.proxy_checker.signal.read().await;
-                select! {
-                    res = task => {
-                        if let Err(err) = res {
-                            error!("task aborted because it timed out: {:?}", err)
+                        _ = sig.cancelled() => {
+                             info!("task was cancelled")
                         }
-                        info!("task finished")
-                    }
-
-                    _ = sig.cancelled() => {
-                         info!("task was cancelled")
-                    }
-                };
+                    };
+                }
             });
 
-        };
-    }).await;
+            tasks.push(t);
+        }
+
+        for task in tasks {
+            task.await;
+        }
+
+        // op done
+        state.proxy_checker.file_set.store(false, SeqCst);
+        state.proxy_checker.ongoing.store(false, SeqCst);
+        chan.send("proxy-checker:end".into());
+    })
+    .await;
     Ok(())
 }
 
@@ -159,30 +178,26 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 
 #[tauri::command]
 pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> {
-    let contents = fs::read(path).await.map_err(|err| err.to_string())?;
-    let task = 't1: {
+    let task: anyhow::Result<bool> = {
         let state = handle.state::<crate::AppState>();
-        let rlock = state.proxy_checker.signal.read().await;
-        if rlock.is_cancelled() {
-            break 't1;
+        let sender = state.proxy_checker.pipe.0.clone();
+
+        let is_set = state.proxy_checker.file_set.load(SeqCst);
+        if is_set {
+            info!("ongoing so not sending anything");
+            return Err(anyhow!("ongoing operation so aborting").to_string());
         }
+
+        let contents = fs::read(path).await.map_err(|err| err.to_string())?;
+        state.proxy_checker.file_set.store(true, SeqCst);
 
         let mut lines = contents.lines();
-
         while let Some(line) = lines.next_line().await.ok().flatten() {
-            let _ = handle
-                .state::<crate::AppState>()
-                .proxy_checker
-                .pipe
-                .0
-                .send(line)
-                .await
-                .map_err(|err| {
-                    info!("err while sending: {err}");
-                    err.to_string()
-                });
+            let _ = sender.send(line).await.map_err(|err| err.to_string())?;
         }
+        Ok(true)
     };
+
     tokio::spawn(async move { task });
     Ok(true)
 }
