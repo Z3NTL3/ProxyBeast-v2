@@ -79,7 +79,6 @@ pub async fn check_proxy_list(
             return;
         }
 
-        info!("start is empty? {:?}", state.proxy_checker.pipe.1.is_empty());
         while !state.proxy_checker.pipe.1.is_empty() {
             let app_clone = app.clone();
             tokio::spawn(async move {
