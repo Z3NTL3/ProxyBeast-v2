@@ -24,7 +24,13 @@ struct Ack {
 /// - [`read_file`] feeds proxy URIs non-blockin and asynchronously through a multi producer multi consumer [`async_channel::bounded`] channel.
 /// - [`check_proxy_list`] consumes the feed after the user presses `Start Check` from GUI to invoke [`check_proxy_list`]
 ///
-/// This command will exit instantly if no messages are found in the pipe. GUI is alerts the user to upload a proxy list file first.
+/// This command will exit instantly if no messages are found in the pipe. GUI alerts the user to provide a proxy list file.
+///
+/// # Procedures
+/// Before starting any operation the following is asserted:
+/// - If the given token was cancelled then the pipe should be drained out when not empty
+/// - Subsequently the token should be renewed using [`tokio::sync::RWLock`] in [`crate::AppState`]
+///
 ///
 /// # Arguments
 /// - timeout: Timeout in miliseconds for each task to complete, acts as max timeout for each proxy being asserted.
