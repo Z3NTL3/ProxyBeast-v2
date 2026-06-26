@@ -1,6 +1,7 @@
 use async_channel::{Receiver, Sender, bounded};
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Listener, Manager, async_runtime};
@@ -20,6 +21,7 @@ struct AppState {
 }
 
 struct ProxyChecker {
+    ongoing: AtomicBool,
     signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
 }
@@ -106,6 +108,7 @@ pub fn run() {
             );
 
             let checker = ProxyChecker {
+                ongoing: AtomicBool::new(false),
                 signal: RwLock::new(CancellationToken::new()),
                 pipe: bounded(100),
             };

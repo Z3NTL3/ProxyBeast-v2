@@ -160,7 +160,13 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 #[tauri::command]
 pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> {
     let contents = fs::read(path).await.map_err(|err| err.to_string())?;
-    tokio::spawn(async move {
+    let task = 't1: {
+        let state = handle.state::<crate::AppState>();
+        let rlock = state.proxy_checker.signal.read().await;
+        if rlock.is_cancelled() {
+            break 't1;
+        }
+
         let mut lines = contents.lines();
 
         while let Some(line) = lines.next_line().await.ok().flatten() {
@@ -176,6 +182,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
                     err.to_string()
                 });
         }
-    });
+    };
+    tokio::spawn(async move { task });
     Ok(true)
 }
