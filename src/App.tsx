@@ -15,12 +15,24 @@ import { TiMediaPlayOutline } from "react-icons/ti";
 import { PiDownloadSimple } from "react-icons/pi";
 import { BsCashStack } from "react-icons/bs";
 import { invoke, Channel } from "@tauri-apps/api/core";
+import { FaStop } from "react-icons/fa";
+import { motion } from "motion/react";
 
 function App() {
   let [logs, setLogs] = useState<Array<string>>([]);
   let [version, setVersion] = useState<string>("1.0.0");
+  let [didStart, setDidStart] = useState(false);
 
-  let loaded = useLoad();
+  const chan = new Channel<String>();
+  chan.onmessage = (message) => {
+    console.log(`checker: ${message}`);
+    switch (message) {
+      case "proxy-checker:end":
+        setDidStart(false);
+    }
+  };
+
+  useLoad();
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const activity = listen("activity", (ev) => {
@@ -38,17 +50,22 @@ function App() {
     };
   }, []);
 
-  const dostuff = () => {
-    const onEvent = new Channel<String>();
-    onEvent.onmessage = (message) => {
-      console.log(`got download event ${message}`);
-    };
-
-    invoke("check_proxy_list", {
-      timeout: 6000,
-      chan: onEvent,
-    }).then(console.info);
-  }
+  const startChecker = () => {
+    if (!didStart) {
+      invoke("check_proxy_list", {
+        timeout: 6000,
+        chan,
+      });
+      setDidStart((_) => true);
+    } else {
+      invoke("stop_check").then((_) => {
+        invoke("check_proxy_list", {
+          timeout: 6000,
+          chan,
+        });
+      });
+    }
+  };
 
   return (
     <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
@@ -87,11 +104,8 @@ function App() {
         </div>
         {/*end*/}
 
-        <div className="mt-84 flex w-full h-[0.2px] bg-white/20"></div>
-        <div className="mt-5 cursor-pointer flex justify-center items-center gap-x-2 px-2 py-1.5 bg-[#0A84FF] rounded-lg font-inter text-[13px] text-center">
-          Check Proxies
-        </div>
-        <p className="flex items-center justify-center gap-x-1 text-center text-[12px] text-white/40 mt-2 hover:text-white hover:cursor-pointer">
+        <div className="mt-100 flex w-full h-[0.2px] bg-white/20"></div>
+        <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/40 hover:text-white hover:cursor-pointer">
           <FaRegQuestionCircle />
           Support
         </p>
@@ -130,8 +144,9 @@ function App() {
                 ],
               });
 
-              console.log("path:", path);
-              invoke("read_file", { path });
+              invoke("read_file", { path })
+                .then(console.info)
+                .catch(console.error);
             }}
             className="cursor-pointer rounded-md flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[78%] h-120"
           >
@@ -187,15 +202,27 @@ function App() {
               </div>
             </div>
 
-            <div onClick={() => dostuff()} className="cursor-pointer flex items-center gap-x-1 text-sm justify-center bg-[#0A84FF] w-full ml-2 rounded-lg p-4 mt-5 text-center font-semibold">
-              <TiMediaPlayOutline size={20} />
-              Start Check
+            <div
+              onClick={startChecker}
+              className={`${!didStart ? "hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)]" + " bg-[#0A84FF]" : "hover:shadow-[1px_1px_30px_0.1px_rgba(255,68,2,0.3)]" + " bg-red-500"} cursor-pointer flex items-center gap-x-1 text-sm justify-center w-full ml-2 rounded-lg p-4 mt-5 text-center font-semibold`}
+            >
+              <motion.div whileInView={{ rotate: [0, 360] }} layout>
+                {!didStart ? (
+                  <TiMediaPlayOutline size={20} />
+                ) : (
+                  <FaStop size={20} />
+                )}
+              </motion.div>
+              {!didStart ? "Start Check" : "Stop Check"}
             </div>
 
-            <div onClick={() => {
-              invoke("stop_check").then(console.info);
-            }} className="cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs">
-              <PiDownloadSimple className="text-white/70 font-bold" size={19} />
+            <div
+              onClick={() => {
+                invoke("stop_check").then(startChecker);
+              }}
+              className="hover:shadow-[1px_1px_30px_0.1px_rgba(255,255,255,0.02)] cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs"
+            >
+              <PiDownloadSimple className="text-white/70 font-bold" size={18} />
               Export Proxies
             </div>
           </div>
