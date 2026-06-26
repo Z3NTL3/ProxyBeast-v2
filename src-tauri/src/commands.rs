@@ -77,8 +77,6 @@ pub async fn check_proxy_list(
             let mut wlock = state.proxy_checker.signal.write().await;
             *wlock = CancellationToken::new();
             info!("reinitialized parent CancellationToken");
-
-            chan.send("proxy-checker:end".into());
             return;
         }
 
