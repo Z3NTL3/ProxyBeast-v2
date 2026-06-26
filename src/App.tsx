@@ -192,7 +192,9 @@ function App() {
               Start Check
             </div>
 
-            <div className="cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs">
+            <div onClick={() => {
+              invoke("stop_check").then(console.info);
+            }} className="cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs">
               <PiDownloadSimple className="text-white/70 font-bold" size={19} />
               Export Proxies
             </div>

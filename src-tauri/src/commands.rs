@@ -2,6 +2,7 @@
 use anyhow::anyhow;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
+use tokio_util::sync::CancellationToken;
 use std::net::SocketAddrV4;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
@@ -52,7 +53,35 @@ pub async fn check_proxy_list(
     let d = Duration::from_millis(timeout_);
     let _ = tokio::spawn(async move {
         let state = app.state::<crate::AppState>();
+        info!("eehm");
+        let reinit = {
+            let mut rlock = state.proxy_checker.signal.read().await;
 
+            if rlock.is_cancelled() {
+                info!("cancelled");
+                while !state.proxy_checker.pipe.1.is_empty() {
+                    // drain
+                    state.proxy_checker.pipe.1.try_recv();
+                }
+
+                info!("drained");
+                true
+            } else {
+                false
+            }
+        };
+
+        info!("hi");
+
+        if reinit {
+            let mut wlock = state.proxy_checker.signal.write().await;
+            *wlock = CancellationToken::new();
+            info!("setup but was empty");
+            return;
+        }
+
+
+        info!("start is empty? {:?}", state.proxy_checker.pipe.1.is_empty());
         while !state.proxy_checker.pipe.1.is_empty() {
             let app_clone = app.clone();
             tokio::spawn(async move {
