@@ -2,7 +2,6 @@
 use anyhow::anyhow;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
-use tokio_util::sync::CancellationToken;
 use std::net::SocketAddrV4;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
@@ -10,6 +9,7 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
 use tokio::{fs, select};
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use url::Url;
 
@@ -53,7 +53,6 @@ pub async fn check_proxy_list(
     let d = Duration::from_millis(timeout_);
     let _ = tokio::spawn(async move {
         let state = app.state::<crate::AppState>();
-        info!("eehm");
         let reinit = {
             let mut rlock = state.proxy_checker.signal.read().await;
 
@@ -71,15 +70,14 @@ pub async fn check_proxy_list(
             }
         };
 
-        info!("hi");
-
         if reinit {
             let mut wlock = state.proxy_checker.signal.write().await;
             *wlock = CancellationToken::new();
-            info!("setup but was empty");
+            info!("reinitialized parent CancellationToken");
+
+            chan.send(format!("{}:re-invoke", crate::events::REINIT));
             return;
         }
-
 
         info!("start is empty? {:?}", state.proxy_checker.pipe.1.is_empty());
         while !state.proxy_checker.pipe.1.is_empty() {

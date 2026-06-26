@@ -30,6 +30,7 @@ pub(crate) mod events {
     pub const WINDOW_LOADED: &'static str = "window_loaded";
     pub const WINDOW_LOAD_PROGRESS: &'static str = "load_progress";
     pub const APP_VERSION: &'static str = "app_version";
+    pub const REINIT: &'static str = "reinit";
 }
 
 struct LiveLogs;
