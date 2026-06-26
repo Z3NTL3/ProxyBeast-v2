@@ -122,7 +122,7 @@ pub fn run() {
             });
 
             let subscriber = Registry::default()
-                .with(fmt::layer())
+                .with(fmt::layer().with_line_number(true).pretty().with_ansi(true))
                 .with(LiveLogs.with_filter(filter_fn(|metadata| {
                     if metadata.target() == LIVE_LOGS {
                         true

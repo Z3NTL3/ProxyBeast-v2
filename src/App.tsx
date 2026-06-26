@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import useLoad from "./hooks/useLoad";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
@@ -19,20 +19,11 @@ import { FaStop } from "react-icons/fa";
 import { motion } from "motion/react";
 
 function App() {
+  useLoad();
   let [logs, setLogs] = useState<Array<string>>([]);
   let [version, setVersion] = useState<string>("1.0.0");
   let [didStart, setDidStart] = useState(false);
 
-  const chan = new Channel<String>();
-  chan.onmessage = (message) => {
-    console.log(`checker: ${message}`);
-    switch (message) {
-      case "proxy-checker:end":
-        setDidStart(false);
-    }
-  };
-
-  useLoad();
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const activity = listen("activity", (ev) => {
@@ -44,27 +35,32 @@ function App() {
     });
 
     unlisten.push(activity, cargo_ver);
-
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
   }, []);
 
-  const startChecker = () => {
-    if (!didStart) {
-      invoke("check_proxy_list", {
-        timeout: 6000,
-        chan,
-      });
-      setDidStart((_) => true);
-    } else {
-      invoke("stop_check").then((_) => {
-        invoke("check_proxy_list", {
-          timeout: 6000,
-          chan,
-        });
-      });
+  const startChecker = async () => {
+    if (didStart) {
+      await invoke("stop_check");
+      return;
     }
+
+    const channel = new Channel<string>();
+    channel.onmessage = (message) => {
+      console.log(message)
+      switch (message) {
+        case "proxy-checker:end":
+          setDidStart(false);
+          break;
+        case "proxy-checker:start":
+          setDidStart(true);
+          break;
+      }
+    };
+    invoke("check_proxy_list", {
+      chan: channel,
+    });
   };
 
   return (
@@ -132,8 +128,8 @@ function App() {
 
         <div className="flex p-4 w-full h-full">
           <div
-            onClick={async () => {
-              let path = await open({
+            onClick={() => {
+              open({
                 multiple: false,
                 directory: false,
                 filters: [
@@ -142,11 +138,11 @@ function App() {
                     extensions: ["txt"],
                   },
                 ],
+              }).then((path) => {
+                if (typeof path === "string" && path.length > 1) {
+                  invoke("read_file", { path })
+                }
               });
-
-              invoke("read_file", { path })
-                .then(console.info)
-                .catch(console.error);
             }}
             className="cursor-pointer rounded-md flex flex-col justify-center items-center border-white/20  border-2 border-dotted w-[78%] h-120"
           >
@@ -217,9 +213,6 @@ function App() {
             </div>
 
             <div
-              onClick={() => {
-                invoke("stop_check").then(startChecker);
-              }}
               className="hover:shadow-[1px_1px_30px_0.1px_rgba(255,255,255,0.02)] cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs"
             >
               <PiDownloadSimple className="text-white/70 font-bold" size={18} />
