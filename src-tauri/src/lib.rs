@@ -21,8 +21,8 @@ struct AppState {
 }
 
 struct ProxyChecker {
-    file_set: AtomicBool,
-    ongoing: AtomicBool,
+    fd_state: AtomicBool,
+    workers_state: AtomicBool,
     signal: RwLock<CancellationToken>,
     pipe: (Sender<String>, Receiver<String>),
 }
@@ -33,7 +33,6 @@ pub(crate) mod events {
     pub const WINDOW_LOADED: &'static str = "window_loaded";
     pub const WINDOW_LOAD_PROGRESS: &'static str = "load_progress";
     pub const APP_VERSION: &'static str = "app_version";
-    pub const REINIT: &'static str = "reinit";
 }
 
 struct LiveLogs;
@@ -109,8 +108,8 @@ pub fn run() {
             );
 
             let checker = ProxyChecker {
-                file_set: AtomicBool::new(false),
-                ongoing: AtomicBool::new(false),
+                fd_state: AtomicBool::new(false),
+                workers_state: AtomicBool::new(false),
                 signal: RwLock::new(CancellationToken::new()),
                 pipe: bounded(100),
             };

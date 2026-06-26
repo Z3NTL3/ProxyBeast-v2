@@ -55,7 +55,7 @@ pub async fn check_proxy_list(
         let state = app.state::<crate::AppState>();
         let reinit = {
             let mut rlock = state.proxy_checker.signal.read().await;
-            if !rlock.is_cancelled() && state.proxy_checker.ongoing.load(SeqCst) {
+            if !rlock.is_cancelled() && state.proxy_checker.workers_state.load(SeqCst) {
                 return;
             }
 
@@ -170,8 +170,8 @@ pub async fn check_proxy_list(
         info!("tasks completed");
 
         // op done
-        state.proxy_checker.file_set.store(false, SeqCst);
-        state.proxy_checker.ongoing.store(false, SeqCst);
+        state.proxy_checker.fd_state.store(false, SeqCst);
+        state.proxy_checker.workers_state.store(false, SeqCst);
         error!("end");
         chan.send("proxy-checker:end".into());
     });
@@ -190,14 +190,14 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
         let state = handle.state::<crate::AppState>();
         let sender = state.proxy_checker.pipe.0.clone();
 
-        let is_set = state.proxy_checker.file_set.load(SeqCst);
+        let is_set = state.proxy_checker.fd_state.load(SeqCst);
         if is_set {
             info!("ongoing so not sending anything");
             return Err(anyhow!("ongoing operation so aborting").to_string());
         }
 
         let contents = fs::read(path).await.map_err(|err| err.to_string())?;
-        state.proxy_checker.file_set.store(true, SeqCst);
+        state.proxy_checker.fd_state.store(true, SeqCst);
 
         let mut lines = contents.lines();
         while let Some(line) = lines.next_line().await.ok().flatten() {
