@@ -81,7 +81,6 @@ pub async fn check_proxy_list(
             let sender = sender.clone();
             let receiver = receiver.clone();
             let token = token.clone();
-
             let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
                 't1: while !receiver.is_empty() && !token.is_cancelled() {
@@ -167,7 +166,6 @@ pub async fn check_proxy_list(
                     }
                 }
             });
-
             tasks.push(t);
         }
 
