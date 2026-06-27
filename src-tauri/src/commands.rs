@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
 use std::net::SocketAddrV4;
-use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::Ordering::{Acquire, Relaxed, Release, SeqCst};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
@@ -49,50 +49,44 @@ struct Ack<'a> {
 pub async fn check_proxy_list(
     app: AppHandle,
     chan: tauri::ipc::Channel<String>,
-) -> Result<(), ()> {
+) -> Result<(), String> {
+    let state = app.state::<crate::AppState>();
+    let ongoing = state.proxy_checker.workers_state.load(SeqCst);
+    let fd_state = state.proxy_checker.fd_state.load(SeqCst);
+    if ongoing | !fd_state {
+        return Err("ongoing".into());
+    }
+
     let d = Duration::from_millis(6000);
     tokio::spawn(async move {
         let state = app.state::<crate::AppState>();
-        let reinit = {
-            let mut rlock = state.proxy_checker.signal.read().await;
-            if !rlock.is_cancelled() && state.proxy_checker.workers_state.load(SeqCst) {
-                return;
-            }
-
-            if rlock.is_cancelled() {
-                info!("cancelled");
-                while !state.proxy_checker.pipe.1.is_empty() {
-                    // drain
-                    info!("draining pipe");
-                    state.proxy_checker.pipe.1.try_recv();
-                }
-                true
-            } else {
-                false
-            }
-        };
-
-        if reinit {
-            let mut wlock = state.proxy_checker.signal.write().await;
-            *wlock = CancellationToken::new();
-            info!("reinitialized parent CancellationToken");
-            return;
-        }
-
         let mut tasks: Vec<JoinHandle<()>> = vec![];
-        if !state.proxy_checker.pipe.1.is_empty() {
-            info!("worker pool starting");
-            chan.send("proxy-checker:start".into());
-        }
 
-        for i in 0..=state.proxy_checker.pipe.0.capacity().unwrap() {
+        state.proxy_checker.workers_state.store(true, SeqCst);
+
+        info!("worker pool starting");
+        chan.send("proxy-checker:start".into());
+
+        let sender = state.proxy_checker.pipe.0.clone();
+        let receiver = state.proxy_checker.pipe.1.clone();
+        let token = state.proxy_checker.signal.read().await;
+
+        for i in 0..=sender.capacity().unwrap() {
+            if token.is_cancelled() {
+                break;
+            }
+
             let app_clone = app.clone();
+            let chan = chan.clone();
+            let sender = sender.clone();
+            let receiver = receiver.clone();
+            let token = token.clone();
 
             let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
-                while !state.proxy_checker.pipe.1.is_empty() {
+                't1: while !receiver.is_empty() && !token.is_cancelled() {
                     let app_clone = app_clone.clone();
-                    let proxy = state.proxy_checker.pipe.1.recv().await;
+                    let proxy = receiver.try_recv();
                     if proxy.is_ok() {
                         let proxy = proxy.unwrap();
                         let task = timeout(d, async {
@@ -131,7 +125,7 @@ pub async fn check_proxy_list(
 
                                         let mut resp = String::new();
                                         conn.read_to_string(&mut resp).await?;
-                                        info!("network ack: {:?}", resp);
+                                        // info!("network ack: {:?}", resp);
                                     }
                                     _  => {
                                         //info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
@@ -140,20 +134,34 @@ pub async fn check_proxy_list(
 
                                 Ok(Ack { proxy, latency: now.elapsed().as_millis() })
                             }.await;
-                            // todo
+                            result
                         });
 
-                        let sig = state.proxy_checker.signal.read().await;
                         select! {
+                            // prioritize cancellation
+                            biased;
+                            _ = token.cancelled() => {
+                                 info!("task was cancelled");
+                                 break 't1;
+                            }
                             res = task => {
                                 if let Err(err) = res {
-                                    error!("task aborted because it timed out: {:?}", err)
+                                    error!("task aborted because it timed out: {:?}", err);
+                                    chan.send(format!("proxy|bad|{}", proxy));
+                                } else if let Ok(res) = res {
+                                    match res {
+                                        Ok(ack) => {
+                                            info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
+                                            chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
+                                        }
+                                        Err(err) => {
+                                            info!("proxy:bad:{}", proxy);
+                                            chan.send(format!("proxy|bad|{}", proxy));
+                                        }
+                                    }
                                 }
-                                info!("task finished")
-                            }
 
-                            _ = sig.cancelled() => {
-                                 info!("task was cancelled")
+                                info!("task finished");
                             }
                         };
                     }
@@ -163,16 +171,22 @@ pub async fn check_proxy_list(
             tasks.push(t);
         }
 
-        info!("h");
         for task in tasks {
             task.await;
         }
 
-        info!("tasks completed");
+        info!("pool completed");
+        drop(token);
+
+        {
+            let mut wlock = state.proxy_checker.signal.write().await;
+            *wlock = CancellationToken::new();
+        }
 
         // op done
         state.proxy_checker.fd_state.store(false, SeqCst);
         state.proxy_checker.workers_state.store(false, SeqCst);
+
         info!("worker pool OP completion");
         chan.send("proxy-checker:end".into());
     });
@@ -195,6 +209,13 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
         if is_set {
             info!("ongoing so not sending anything");
             return Err(anyhow!("ongoing operation so aborting").to_string());
+        }
+
+        {
+            let receiver = state.proxy_checker.pipe.1.clone();
+            while !receiver.is_empty() {
+                receiver.try_recv();
+            }
         }
 
         let contents = fs::read(path).await.map_err(|err| err.to_string())?;

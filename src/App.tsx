@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import useLoad from "./hooks/useLoad";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
@@ -16,13 +16,15 @@ import { PiDownloadSimple } from "react-icons/pi";
 import { BsCashStack } from "react-icons/bs";
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { FaStop } from "react-icons/fa";
-import { motion } from "motion/react";
+import { motion, useAnimate } from "motion/react";
+import moment from "moment";
 
 function App() {
   useLoad();
-  let [logs, setLogs] = useState<Array<string>>([]);
+  let [logs, setLogs] = useState<Array<String>>([]);
   let [version, setVersion] = useState<string>("1.0.0");
   let [didStart, setDidStart] = useState(false);
+  let [scope, animate] = useAnimate();
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
@@ -34,13 +36,23 @@ function App() {
       setVersion(ev.payload as string);
     });
 
+    let id = setInterval(() => {
+      let log_pane = document.getElementById("pane");
+      log_pane?.lastElementChild?.scrollIntoView(false);
+    }, 24);
+
     unlisten.push(activity, cargo_ver);
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
+      clearInterval(id);
     };
   }, []);
 
   const startChecker = async () => {
+    animate("#checker-btn", {
+      rotate: [0, 360],
+    });
+
     if (didStart) {
       await invoke("stop_check");
       return;
@@ -48,23 +60,62 @@ function App() {
 
     const channel = new Channel<string>();
     channel.onmessage = (message) => {
-      console.log(message)
-      switch (message) {
-        case "proxy-checker:end":
+      switch (true) {
+        case message === "proxy-checker:end":
+          console.log("stop");
           setDidStart((_) => false);
+          setLogs((logs) => [
+            ...logs,
+            `[${moment().format("HH:mm:ss")}] Proxy checker terminated`,
+          ]);
           break;
-        case "proxy-checker:start":
+        case message === "proxy-checker:start":
+          console.log("start");
           setDidStart((_) => true);
+          setLogs((logs) => [
+            ...logs,
+            `[${moment().format("HH:mm:ss")}] Proxy checker initialized`,
+          ]);
           break;
+        case message.includes("proxy|good"): {
+          let ack = message
+            .split("proxy|good|")[1]
+            .split("|")
+            .filter((v) => v !== "");
+          console.log("ack", ack);
+
+          let proxy = ack[0];
+          let latency = ack[2];
+
+          setLogs((logs) => [
+            ...logs,
+            `[${moment().format("HH:mm:ss")}] live: ${proxy} - latency ${latency}ms`,
+          ]);
+          break;
+        }
+        case message.includes("proxy|bad"): {
+          let proxy = message.split("proxy|bad|")[1];
+          if (proxy.length === 0) return;
+
+          setLogs((logs) => [
+            ...logs,
+            `[${moment().format("HH:mm:ss")}] dead: ${proxy}`,
+          ]);
+          break;
+        }
       }
     };
+
     invoke("check_proxy_list", {
       chan: channel,
     });
   };
 
   return (
-    <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
+    <div
+      ref={scope}
+      className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden"
+    >
       <div className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
         {/*logo*/}
         <div data-tauri-drag-region className="flex items-center">
@@ -140,7 +191,7 @@ function App() {
                 ],
               }).then((path) => {
                 if (typeof path === "string" && path.length > 1) {
-                  invoke("read_file", { path })
+                  invoke("read_file", { path });
                 }
               });
             }}
@@ -202,7 +253,11 @@ function App() {
               onClick={startChecker}
               className={`${!didStart ? "hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)]" + " bg-[#0A84FF]" : "hover:shadow-[1px_1px_30px_0.1px_rgba(255,68,2,0.3)]" + " bg-red-500"} cursor-pointer flex items-center gap-x-1 text-sm justify-center w-full ml-2 rounded-lg p-4 mt-5 text-center font-semibold`}
             >
-              <motion.div whileInView={{ rotate: [0, 360] }} layout>
+              <motion.div
+                id="checker-btn"
+                whileInView={{ rotate: [0, 360] }}
+                layout
+              >
                 {!didStart ? (
                   <TiMediaPlayOutline size={20} />
                 ) : (
@@ -212,9 +267,7 @@ function App() {
               {!didStart ? "Start Check" : "Stop Check"}
             </div>
 
-            <div
-              className="hover:shadow-[1px_1px_30px_0.1px_rgba(255,255,255,0.02)] cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs"
-            >
+            <div className="hover:shadow-[1px_1px_30px_0.1px_rgba(255,255,255,0.02)] cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs">
               <PiDownloadSimple className="text-white/70 font-bold" size={18} />
               Export Proxies
             </div>
@@ -230,10 +283,23 @@ function App() {
             </div>
           </div>
 
-          <div className="w-full h-20 overflow-y-scroll flex flex-col">
+          <div
+            id="pane"
+            className="w-full h-26 overflow-y-scroll flex flex-col scrollbar-thumb-gray-800 resize-y"
+          >
             {logs.map((log, i) => (
               <div key={`logview-item-${i}`} className="flex">
-                <p className="text-[13px] text-white/40">{log}</p>
+                <p className="text-[13px] text-white/40">
+                  {log.includes("live") || log.includes("dead") ? (
+                    <span
+                      className={`text-xs ${log.includes("live") ? "text-green-300" : "text-red-400"}`}
+                    >
+                      {log}
+                    </span>
+                  ) : (
+                    log
+                  )}
+                </p>
               </div>
             ))}
           </div>
