@@ -204,8 +204,8 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 }
 
 #[tauri::command]
-pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> {
-    let task: JoinHandle<Result<bool, String>> = tokio::spawn(async move {
+pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
+    let task: JoinHandle<Result<u16, String>> = tokio::spawn(async move {
         let state = handle.state::<crate::AppState>();
         let sender = state.proxy_checker.pipe.0.clone();
 
@@ -223,11 +223,14 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
         }
 
         let contents = fs::read(path).await;
+        let mut load: u16 = 0;
+
         match contents {
             Ok(contents) => {
                 state.proxy_checker.fd_state.store(true, SeqCst);
                 let mut lines = contents.lines();
                 while let Some(line) = lines.next_line().await.ok().flatten() {
+                    load += 1;
                     sender.try_send(line);
                 };
             }
@@ -235,7 +238,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
                 return Err(err.to_string());
             }
         }
-        Ok(true)
+        Ok(load)
     });
     task.await.map_err(|err| err.to_string())?
 }
