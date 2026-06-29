@@ -4,7 +4,9 @@ import { ScreenContext } from "../screen.context"
 export default function Credits() {
   let screen = useContext(ScreenContext)
   useEffect(() => {
-    screen?.setScreen("Credits")
+    if (typeof screen.setData !== "undefined") {
+      screen.setData({...screen, current: "Credits"})
+    }
   }, [screen])
 
   return (

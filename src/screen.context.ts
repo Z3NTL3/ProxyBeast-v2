@@ -1,8 +1,13 @@
 import { createContext, Dispatch, SetStateAction } from 'react';
+import { VERSION } from './app.version';
 
-interface ScreenData {
+export interface ScreenData {
+  app_version: String
   current: String
-  setScreen: Dispatch<SetStateAction<String>>
+  setData?: Dispatch<SetStateAction<ScreenData>>
 }
 
-export const ScreenContext = createContext<ScreenData | null>(null)
+export const ScreenContext = createContext<ScreenData>({
+  app_version: VERSION,
+  current: "Overview"
+})

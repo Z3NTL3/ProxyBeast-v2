@@ -7,34 +7,42 @@ import { Window } from "@tauri-apps/api/window";
 import { Outlet } from "react-router";
 import useLoad from "./hooks/useLoad";
 import { motion } from "motion/react";
-import { ScreenContext } from "./screen.context";
+import { ScreenContext, ScreenData } from "./screen.context";
 import { SCREENS } from "./screens.tsx";
 import { invoke } from "@tauri-apps/api/core";
 import { Toaster } from "@/components/ui/sonner"
 import "./App.css";
 import logo from "./assets/logo.png";
+import { VERSION } from "./app.version.ts";
 
 
 export const Layout = memo(() => {
   useLoad();
-  let [version, setVersion] = useState<string>("1.0.0");
-  let [screen, setScreen] = useState<String>("Overview")
+  let [screenData, setScreenData] = useState<ScreenData>({
+    app_version: VERSION,
+    current: "Overview"
+  })
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const cargo_ver = listen("app_version", (ev) => {
-      setVersion(ev.payload as string);
+      setScreenData((v) => {
+        return {
+          ...v,
+          app_version: ev.payload as string
+        }
+      });
     });
     unlisten.push(cargo_ver);
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
-  }, [version]);
+  }, [screenData.app_version]);
 
   return (
     <ScreenContext value={{
-      current: screen,
-      setScreen
+      ...screenData,
+      setData: setScreenData
     }}>
       <div
         className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden"
@@ -48,7 +56,7 @@ export const Layout = memo(() => {
           {/*end*/}
 
           {/*version*/}
-          <p className="text-xs text-white/40 mt-2 ml-1">v{version}</p>
+          <p className="text-xs text-white/40 mt-2 ml-1">v{screenData.app_version}</p>
           {/*end*/}
 
           {/*items*/}
@@ -60,7 +68,7 @@ export const Layout = memo(() => {
                   return true;
                 }}>
                 {
-                  screen === screen_.title ?
+                  screenData.current === screen_.title ?
                       <motion.div animate={{scaleY: [0,1]}} className="hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)] bg-[#0A84FF] cursor-pointer flex items-center gap-x-2 px-2 py-1.5 rounded-lg font-inter text-[13px] text-left">
                         {screen_.node}
                       </motion.div>
