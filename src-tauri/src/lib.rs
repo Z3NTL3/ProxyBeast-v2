@@ -2,6 +2,7 @@ use async_channel::{Receiver, Sender, bounded};
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
 use tauri::path::BaseDirectory;
+use std::fs;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -19,6 +20,7 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 struct AppState {
     proxy_checker: ProxyChecker,
     tls_config: Arc<ClientConfig>,
+    app_config: RwLock<models::AppConfig>
 }
 
 struct ProxyChecker {
@@ -29,7 +31,9 @@ struct ProxyChecker {
 }
 
 pub(crate) use tokio_util::sync::CancellationToken;
+
 pub(crate) mod commands;
+pub(crate) mod models;
 pub(crate) mod events {
     pub const WINDOW_LOADED: &'static str = "window_loaded";
     pub const WINDOW_LOAD_PROGRESS: &'static str = "load_progress";
@@ -98,8 +102,22 @@ pub fn run() {
             commands::read_file
         ])
         .setup(|app| {
+            let subscriber = Registry::default()
+                .with(fmt::layer().with_line_number(true).pretty().with_ansi(true))
+                .with(LiveLogs.with_filter(filter_fn(|metadata| {
+                    if metadata.target() == LIVE_LOGS {
+                        true
+                    } else {
+                        false
+                    }
+                })));
+            tracing::subscriber::set_global_default(subscriber).unwrap();
+
             let resource_path = app.path().resolve("config.json", BaseDirectory::Resource)?;
-            info!("resource: {}", resource_path.to_str().unwrap());
+            let config = fs::read_to_string(resource_path)?;
+            let app_config: models::AppConfig = serde_json::from_str(&config[..])?;
+
+            info!("App Config {:?}", config);
 
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();
             let mut root_cert_store = RootCertStore::empty();
@@ -115,25 +133,14 @@ pub fn run() {
                 fd_state: AtomicBool::new(false),
                 workers_state: AtomicBool::new(false),
                 signal: RwLock::new(CancellationToken::new()),
-                pipe: bounded(100),
+                pipe: bounded(1000),
             };
-            // checker.pipe.1.borrow_and_update();
 
             app.manage(AppState {
                 proxy_checker: checker,
                 tls_config: config,
+                app_config: RwLock::new(app_config)
             });
-
-            let subscriber = Registry::default()
-                .with(fmt::layer().with_line_number(true).pretty().with_ansi(true))
-                .with(LiveLogs.with_filter(filter_fn(|metadata| {
-                    if metadata.target() == LIVE_LOGS {
-                        true
-                    } else {
-                        false
-                    }
-                })));
-            tracing::subscriber::set_global_default(subscriber).unwrap();
 
             let windows = app.webview_windows();
             let main_window = windows.get("main").unwrap();

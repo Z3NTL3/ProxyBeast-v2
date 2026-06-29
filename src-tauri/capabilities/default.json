@@ -13,6 +13,14 @@
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-close",
-    "dialog:default"
+    "dialog:default",
+    {
+          "identifier": "opener:allow-open-path",
+          "allow": [
+            {
+              "path": "$APPCACHE/saves/*"
+            }
+          ]
+        }
   ]
 }

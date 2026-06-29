@@ -2,7 +2,10 @@
 use anyhow::anyhow;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
+use serde::de::Unexpected::Seq;
 use std::net::SocketAddrV4;
+use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release, SeqCst};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
@@ -63,6 +66,7 @@ pub async fn check_proxy_list(
 
     let d = Duration::from_millis(6000);
     tokio::spawn(async move {
+        let mut count = Arc::new(AtomicU64::new(0));
         let state = app.state::<crate::AppState>();
         let mut tasks: Vec<JoinHandle<()>> = vec![];
 
@@ -76,6 +80,7 @@ pub async fn check_proxy_list(
         let token = state.proxy_checker.signal.read().await;
 
         for i in 0..=sender.capacity().unwrap() {
+            let count = count.clone();
             if token.is_cancelled() {
                 break;
             }
@@ -85,9 +90,10 @@ pub async fn check_proxy_list(
             let sender = sender.clone();
             let receiver = receiver.clone();
             let token = token.clone();
+
             let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
-                't1: while !receiver.is_empty() && !token.is_cancelled() {
+                't1: while receiver.len() != 0 && !token.is_cancelled() {
                     let app_clone = app_clone.clone();
                     let proxy = receiver.try_recv();
                     if proxy.is_ok() {
@@ -96,7 +102,6 @@ pub async fn check_proxy_list(
                             let result: anyhow::Result<Ack> = async {
                                 let proxy = &proxy;
                                 let uri = proxy.parse::<Url>()?;
-
                                 info!("proxy recv: {:?}", proxy);
 
                                 let mut auth = Auth::NoAuth;
@@ -148,19 +153,27 @@ pub async fn check_proxy_list(
                                  break 't1;
                             }
                             res = task => {
-                                if let Err(err) = res {
-                                    error!("task aborted because it timed out: {:?}", err);
-                                    chan.send(format!("proxy|bad|{}", proxy));
-                                } else if let Ok(res) = res {
-                                    match res {
-                                        Ok(ack) => {
-                                            info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
-                                            chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
+                                match res {
+                                    Ok(res) => {
+                                        match res {
+                                            Ok(ack) => {
+
+                                                count.fetch_add(1, SeqCst);
+                                                info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
+                                                chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
+                                            }
+                                            Err(err) => {
+
+                                                count.fetch_add(1, SeqCst);
+                                                info!("proxy:bad:{}", proxy);
+                                                chan.send(format!("proxy|bad|{}", proxy));
+                                            }
                                         }
-                                        Err(err) => {
-                                            info!("proxy:bad:{}", proxy);
-                                            chan.send(format!("proxy|bad|{}", proxy));
-                                        }
+                                    }
+                                    Err(err) => {
+                                        count.fetch_add(1, SeqCst);
+                                        error!("task aborted because it timed out: {:?}", err);
+                                        chan.send(format!("proxy|bad|{}", proxy));
                                     }
                                 }
 
@@ -191,6 +204,7 @@ pub async fn check_proxy_list(
 
         info!("worker pool OP completion");
         chan.send("proxy-checker:end".into());
+        info!("COUNT: {}", count.load(SeqCst));
     });
     Ok(())
 }
@@ -231,7 +245,11 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
                 let mut lines = contents.lines();
                 while let Some(line) = lines.next_line().await.ok().flatten() {
                     load += 1;
-                    sender.try_send(line);
+
+                    let sender_clone = sender.clone();
+                    tokio::spawn(async move {
+                        sender_clone.send(line).await;
+                    });
                 };
             }
             Err(err) => {

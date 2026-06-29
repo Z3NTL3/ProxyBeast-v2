@@ -1,4 +1,4 @@
-import { createRef, memo, RefObject, useEffect, useState } from "react";
+import {  memo, useEffect, useRef, useState } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { AiOutlineCloudUpload } from "react-icons/ai";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -19,7 +19,9 @@ function App() {
   let [didStart, setDidStart] = useState(false);
   let [scope, animate] = useAnimate();
   let [id, setId] = useState<NodeJS.Timeout | null>(null);
-  let [live_pane, dead_pane, load_pane]: Array<RefObject<HTMLHeadingElement | null>> = [createRef(), createRef(), createRef()]
+  let [live_pane, dead_pane, progress] = [useRef(0), useRef(0), useRef(0)]
+  let [load_pane, setLoad] = useState(0)
+  let [proxies, setProxies] = useState<string[]>([])
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
@@ -63,7 +65,7 @@ function App() {
     channel.onmessage = (message) => {
       switch (true) {
         case message === "proxy-checker:end": {
-          console.log("stop");
+          setLoad(0)
           setDidStart((_) => false);
           setLogs((logs) => [
             ...logs,
@@ -79,8 +81,11 @@ function App() {
           }
           break;
         }
-        case message === "proxy-checker:start":{
-          console.log("start");
+        case message === "proxy-checker:start": {
+          progress.current = 0;
+          live_pane.current = 0;
+          dead_pane.current = 0;
+
           let id = setInterval(() => {
             let log_pane = document.getElementById("pane");
             log_pane?.lastElementChild?.scrollIntoView(false);
@@ -98,11 +103,12 @@ function App() {
           break;
         }
         case message.includes("proxy|good"): {
+          live_pane.current += 1;
+          calcProgress()
           let ack = message
             .split("proxy|good|")[1]
             .split("|")
             .filter((v) => v !== "");
-          console.log("ack", ack);
 
           let proxy = ack[0];
           let latency = ack[2];
@@ -114,9 +120,13 @@ function App() {
               msg: `live: ${proxy} - latency ${latency}ms`
             }
           ]);
+          setProxies((list) => [...list, proxy])
           break;
         }
         case message.includes("proxy|bad"): {
+          dead_pane.current += 1;
+
+          calcProgress()
           let proxy = message.split("proxy|bad|")[1];
           if (proxy.length === 0) return;
 
@@ -139,6 +149,12 @@ function App() {
     });
   };
 
+  const calcProgress = () => {
+    let current_progress = live_pane.current + dead_pane.current;
+    let p = (current_progress / load_pane) * 100
+    progress.current = p
+  }
+
   return (
     <div className="w-full h-full overflow-hidden" ref={scope}>
       <div className="flex p-4 w-full h-fit">
@@ -156,7 +172,7 @@ function App() {
             }).then((path) => {
               if (typeof path === "string" && path.length > 1) {
                 invoke("read_file", { path }).then((v) => {
-                  console.log(v)
+                  setLoad(v as number)
                   toast.info("Selected proxy file")
                 }).catch((err) => {
                   toast.error(String(err))
@@ -182,7 +198,7 @@ function App() {
             <div className="flex items-center w-full text-white/40 text-xs">
               Total Loaded
               <div className="flex grow justify-end items-center mr-2">
-                <h4 ref={load_pane} className="text-white text-lg font-semibold">0</h4>
+                <h4 className="text-white text-lg font-semibold">{load_pane}</h4>
               </div>
             </div>
 
@@ -191,8 +207,8 @@ function App() {
 
               <p className="text-xs text-white/40">Live</p>
 
-              <h2 ref={live_pane} className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
-                0
+              <h2 className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
+                {live_pane.current}
               </h2>
             </div>
 
@@ -201,8 +217,8 @@ function App() {
 
               <p className="text-xs text-white/40">Dead</p>
 
-              <h2 ref={dead_pane} className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
-                0
+              <h2 className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
+                {dead_pane.current}
               </h2>
             </div>
 
@@ -214,7 +230,9 @@ function App() {
                   0%
                 </div>
               </div>
-              <div className="border border-white/20 bg-[#2A2A45] w-full h-2 rounded-full"></div>
+              <div className="border border-white/20 bg-[#2A2A45] w-full h-2 rounded-full">
+                <motion.div layout className={`bg-blue-500 w-[%${progress.current}] h-full rounded-md`}></motion.div>
+              </div>
             </div>
           </div>
 
