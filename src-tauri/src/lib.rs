@@ -173,15 +173,15 @@ pub fn run() {
                         bootstrap_
                             .emit_to("bootstrapper", events::WINDOW_LOAD_PROGRESS, num)
                             .unwrap();
-                        tokio::time::sleep(Duration::from_millis(700)).await;
+                        tokio::time::sleep(Duration::from_millis(200)).await;
                     }
 
-                    tokio::time::sleep(Duration::from_millis(300)).await;
+                    tokio::time::sleep(Duration::from_millis(100)).await;
                     bootstrap_
                         .emit_to("bootstrapper", events::WINDOW_LOAD_PROGRESS, 1.0)
                         .unwrap();
 
-                    tokio::time::sleep(Duration::from_millis(1200)).await;
+                    tokio::time::sleep(Duration::from_millis(200)).await;
                     bootstrap_.close().unwrap();
                     main_.show().unwrap();
                     main_.set_focus().unwrap();
