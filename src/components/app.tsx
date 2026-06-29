@@ -28,10 +28,13 @@ function App() {
       let timeSeg = segments[0].replace("[", "")
       let msgSeg = segments[1]
 
-      setLogs((log_) => [...log_, {
+      let log = {
         timeFormat: timeSeg,
         msg: msgSeg
-      }]);
+      }
+
+      sessionStorage.setItem("boot", JSON.stringify(log))
+      setLogs((logs) => [...logs, log]);
     });
 
     unlisten.push(activity);
@@ -39,6 +42,12 @@ function App() {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
   }, []);
+
+  useEffect(() => {
+    let bootAt = sessionStorage.getItem("boot")
+    if (bootAt !== null)
+      setLogs((logs) => [...logs, JSON.parse(bootAt)])
+  }, [])
 
   const startChecker = async () => {
     animate("#checker-btn", {

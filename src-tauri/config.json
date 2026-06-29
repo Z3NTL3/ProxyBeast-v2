@@ -1,0 +1,4 @@
+{
+  "poolSize": 1000,
+  "timeoutMS": 5000
+}

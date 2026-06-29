@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react"
+import { useContext, useEffect, useState } from "react"
 import { ScreenContext } from "../screen.context"
 import { LuSettings2 } from "react-icons/lu";
 import { Switch } from "@/components/ui/switch"
@@ -6,15 +6,24 @@ import { SiTraefikproxy } from "react-icons/si";
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import URI_Tooltip from "./uri-tooltip";
-import { MdTimer } from "react-icons/md";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { motion } from "motion/react";
 
 export default function Settings() {
   let screen = useContext(ScreenContext)
+  let [poolSize, setPoolSize] = useState(1000)
+  let [timeout, setTimeout] = useState(5000)
+
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
-      screen.setData({...screen, current: "Settings"})
+      screen.setData((screen_) => {
+        return {
+          ...screen_,
+          current: "Settings"
+        }
+      })
     }
-  }, [screen])
+  }, [])
 
   return (
     <div className="flex flex-col p-5 mx-8 mt-10">
@@ -41,7 +50,15 @@ export default function Settings() {
               <p className="text-[12px] text-gray-400">Retry failed connections automatically.</p>
             </div>
             <div className="flex grow  justify-end items-center">
-              <Switch />
+              <Tooltip>
+                <TooltipTrigger>
+                  <Switch disabled/>
+                </TooltipTrigger>
+
+                <TooltipContent  className="text-[12px] ">
+                  This feature is not implemented yet
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           {/* end */}
@@ -54,13 +71,16 @@ export default function Settings() {
 
               <div className="flex grow w-full justify-end items-end">
                 <Badge className="text-[#0058BC] bg-[#D8E2FF] text-[12px]">
-                  1000
+                  {poolSize}
                 </Badge>
               </div>
-              <Slider className="mt-2" defaultValue={[1000]} max={10_000} step={10} />
+              <Slider onValueChange={(v) => setPoolSize(v as number)} className="mt-2" defaultValue={[poolSize]} max={10_000} step={10} />
             </div>
           </div>
           {/* end */}
+
+          <span className="underline mt-5 text-gray-400 text-[12px]">Must restart for new pool size to take effect.</span>
+
         </div>
         {/* end */}
 
@@ -75,25 +95,34 @@ export default function Settings() {
           <div className="flex mt-2">
             <div className="flex flex-col w-full">
               <h3 className="text-[14px] text-gray-300">Timeout</h3>
-              <p className="text-[12px] text-gray-400">Ignore proxies with higher latency than.</p>
+              <p className="text-[12px] text-gray-400">Filter proxies within the maximum latency range.</p>
               <div className="flex grow w-full justify-end items-end">
                 <Badge className="text-[#0058BC] bg-[#D8E2FF] text-[12px]">
-                  5000ms
+                  {timeout}ms
                 </Badge>
               </div>
             </div>
           </div>
-          <Slider className="mt-2" defaultValue={[5]} max={30} step={1} />
+          <Slider onValueChange={(v) => setTimeout(v as number)} className="mt-2" defaultValue={[timeout]} max={20000} step={100} />
           <p className="mt-5 text-gray-400 text-[12px]">
-            Our proxy checker uses <URI_Tooltip/> schemes to detect multi protocol proxies. Your file must contain proxies in <URI_Tooltip/> format.
+            Our proxy checker uses <URI_Tooltip /> schemes to detect multi protocol proxies. Your file must contain proxies in <URI_Tooltip /> format.
           </p>
+           <span className="underline mt-4 text-gray-400 text-[12px]">We will add an option to force select a protocol scheme for proxy lists without proper URI format.</span>
           {/* end */}
         </div>
         {/* end */}
-
-
       </div>
       {/* end */}
+
+      <div className="flex items-center grow gap-x-2 justify-end mt-10">
+        <motion.div whileHover={{
+          scale: 1.04,
+        }} className="bg-[#0A84FF] rounded-xl px-5 py-2 text-[14px] cursor-pointer">
+          Save Changes
+        </motion.div>
+
+        <div className="cursor-pointer text-gray-400 text-[13px] hover:underline">Restore defaults</div>
+      </div>
     </div>
   )
 }

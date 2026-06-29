@@ -1,13 +1,11 @@
-import React, { memo, useContext, useEffect, useState } from "react";
-import { listen, UnlistenFn } from "@tauri-apps/api/event";
+import React, { memo, useContext } from "react";
 import { FaRegQuestionCircle } from "react-icons/fa";
 import { MdOutlineClose } from "react-icons/md";
 import { MdMinimize } from "react-icons/md";
 import { Window } from "@tauri-apps/api/window";
 import { Outlet } from "react-router";
-import useLoad from "./hooks/useLoad";
 import { motion } from "motion/react";
-import { ScreenContext, ScreenData } from "./screen.context";
+import { ScreenContext } from "./screen.context";
 import { SCREENS } from "./screens.tsx";
 import { invoke } from "@tauri-apps/api/core";
 import { Toaster } from "@/components/ui/sonner"

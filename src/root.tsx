@@ -35,7 +35,7 @@ const Root = () => {
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
-  }, [screenData.version]);
+  }, []);
 
   return (
 

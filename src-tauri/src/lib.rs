@@ -1,6 +1,7 @@
 use async_channel::{Receiver, Sender, bounded};
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
+use tauri::path::BaseDirectory;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -97,6 +98,9 @@ pub fn run() {
             commands::read_file
         ])
         .setup(|app| {
+            let resource_path = app.path().resolve("config.json", BaseDirectory::Resource)?;
+            info!("resource: {}", resource_path.to_str().unwrap());
+
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();
             let mut root_cert_store = RootCertStore::empty();
             root_cert_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
