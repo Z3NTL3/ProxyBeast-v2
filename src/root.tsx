@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./components/app.tsx";
 import { BrowserRouter, Routes, Route } from "react-router";
@@ -57,7 +56,7 @@ const Root = () => {
   )
 }
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
+  <>
     <Root/>
-  </React.StrictMode>,
+  </>,
 );

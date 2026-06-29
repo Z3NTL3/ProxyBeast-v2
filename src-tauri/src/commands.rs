@@ -16,6 +16,9 @@ use tokio::{fs, join, select};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use url::Url;
+use tauri::path::BaseDirectory;
+
+use crate::models;
 
 #[derive(Debug)]
 struct Ack<'a> {
@@ -24,9 +27,83 @@ struct Ack<'a> {
     latency: u128,
 }
 
+#[tauri::command]
+pub async fn save_settings(app: AppHandle, payload: models::AppConfig) -> Result<bool, String> {
+    let resource_path = app.path().resolve("config.json", BaseDirectory::Resource).map_err(|err| err.to_string())?;
+    let ser = serde_json::to_vec(&payload).map_err(|err| err.to_string())?;
+    tokio::fs::write(resource_path, &ser).await.map_err(|err| err.to_string())?;
+
+    let state = app.state::<crate::AppState>();
+    let mut guard = state.app_config.write().await;
+    guard.pool_size = payload.pool_size;
+    guard.timeout = payload.timeout;
+
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn retrieve_settings(app: AppHandle) -> Result<models::AppConfig, String> {
+    let state = app.state::<crate::AppState>();
+    let guard = state.app_config.read().await;
+
+    Ok(guard.clone())
+}
+
+#[tauri::command]
+pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), ()> {
+    if state.proxy_checker.workers_state.load(SeqCst) {
+        state.proxy_checker.signal.read().await.cancel();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
+    let task: JoinHandle<Result<u16, String>> = tokio::spawn(async move {
+        let state = handle.state::<crate::AppState>();
+        let sender = state.proxy_checker.pipe.0.clone();
+
+        let is_set = state.proxy_checker.fd_state.load(SeqCst);
+        if is_set {
+            info!("ongoing so not sending anything");
+            return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
+        }
+
+        {
+            let receiver = state.proxy_checker.pipe.1.clone();
+            while !receiver.is_empty() {
+                receiver.try_recv();
+            }
+        }
+
+        let contents = fs::read(path).await;
+        let mut load: u16 = 0;
+
+        match contents {
+            Ok(contents) => {
+                state.proxy_checker.fd_state.store(true, SeqCst);
+                let mut lines = contents.lines();
+                while let Some(line) = lines.next_line().await.ok().flatten() {
+                    load += 1;
+
+                    let sender_clone = sender.clone();
+                    tokio::spawn(async move {
+                        sender_clone.send(line).await;
+                    });
+                };
+            }
+            Err(err) => {
+                return Err(err.to_string());
+            }
+        }
+        Ok(load)
+    });
+    task.await.map_err(|err| err.to_string())?
+}
+
 /// Invoke this tauri command by [`check_proxy_list`] to initiate proxy checking, beaware that [`read_file`] must be called prior.
 ///
-/// - [`read_file`] feeds proxy URIs non-blockin and asynchronously through a multi producer multi consumer [`async_channel::bounded`] channel.
+/// - [`read_file`] feeds proxy URIs non-blocking and asynchronously through a multi producer multi consumer [`async_channel::bounded`] channel.
 /// - [`check_proxy_list`] consumes the feed after the user presses `Start Check` from GUI to invoke [`check_proxy_list`]
 ///
 /// This command will exit instantly if no messages are found in the pipe. GUI alerts the user to provide a proxy list file.
@@ -64,7 +141,9 @@ pub async fn check_proxy_list(
         return Err("Cannot upload new proxy file when there is ongoing operation.".into())
     }
 
-    let d = Duration::from_millis(6000);
+    let d = state.app_config.read().await.timeout;
+    info!("timeout set: {:?}", d);
+
     tokio::spawn(async move {
         let mut count = Arc::new(AtomicU64::new(0));
         let state = app.state::<crate::AppState>();
@@ -207,56 +286,4 @@ pub async fn check_proxy_list(
         info!("COUNT: {}", count.load(SeqCst));
     });
     Ok(())
-}
-
-#[tauri::command]
-pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), ()> {
-    if state.proxy_checker.workers_state.load(SeqCst) {
-        state.proxy_checker.signal.read().await.cancel();
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
-    let task: JoinHandle<Result<u16, String>> = tokio::spawn(async move {
-        let state = handle.state::<crate::AppState>();
-        let sender = state.proxy_checker.pipe.0.clone();
-
-        let is_set = state.proxy_checker.fd_state.load(SeqCst);
-        if is_set {
-            info!("ongoing so not sending anything");
-            return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
-        }
-
-        {
-            let receiver = state.proxy_checker.pipe.1.clone();
-            while !receiver.is_empty() {
-                receiver.try_recv();
-            }
-        }
-
-        let contents = fs::read(path).await;
-        let mut load: u16 = 0;
-
-        match contents {
-            Ok(contents) => {
-                state.proxy_checker.fd_state.store(true, SeqCst);
-                let mut lines = contents.lines();
-                while let Some(line) = lines.next_line().await.ok().flatten() {
-                    load += 1;
-
-                    let sender_clone = sender.clone();
-                    tokio::spawn(async move {
-                        sender_clone.send(line).await;
-                    });
-                };
-            }
-            Err(err) => {
-                return Err(err.to_string());
-            }
-        }
-        Ok(load)
-    });
-    task.await.map_err(|err| err.to_string())?
 }

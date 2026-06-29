@@ -8,11 +8,20 @@ import { Badge } from "@/components/ui/badge"
 import URI_Tooltip from "./uri-tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
+
+interface AppSettings {
+  poolSize: number,
+  timeoutMS: number
+}
 
 export default function Settings() {
   let screen = useContext(ScreenContext)
-  let [poolSize, setPoolSize] = useState(1000)
-  let [timeout, setTimeout] = useState(5000)
+  let [settings, setSettings] = useState<AppSettings>({
+    poolSize: 1000,
+    timeoutMS: 5000
+  })
 
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
@@ -23,7 +32,34 @@ export default function Settings() {
         }
       })
     }
+
+    invoke("retrieve_settings").then((payload) => {
+      let cast = payload as typeof settings
+      setSettings((_) => {
+        return {
+          ...cast,
+        }
+      })
+    }).catch((err) => {
+      toast.error(String(err))
+    })
   }, [])
+
+  const saveSettings = (restore?: boolean) => {
+    invoke("save_settings", {
+      payload: settings
+    }).then((_) => toast.success(restore ? "Restored to defaults" :"Saved new settings")).catch(() => toast.error("Something went wrong while saving the new settings"))
+  }
+
+  const restoreDefaults = () => {
+    setSettings((_) => {
+      return {
+        poolSize: 1000,
+        timeoutMS: 5000
+      }
+    })
+    saveSettings(true)
+  }
 
   return (
     <div className="flex flex-col p-5 mx-8 mt-10">
@@ -71,10 +107,14 @@ export default function Settings() {
 
               <div className="flex grow w-full justify-end items-end">
                 <Badge className="text-[#0058BC] bg-[#D8E2FF] text-[12px]">
-                  {poolSize}
+                  {settings.poolSize}
                 </Badge>
               </div>
-              <Slider onValueChange={(v) => setPoolSize(v as number)} className="mt-2" defaultValue={[poolSize]} max={10_000} step={10} />
+              <Slider onValueChange={(v) => {
+                setSettings((settings) => {
+                  return {...settings, poolSize: v as number}
+                })
+              }} className="mt-2" value={[settings.poolSize]} max={10_000} step={10} />
             </div>
           </div>
           {/* end */}
@@ -98,12 +138,16 @@ export default function Settings() {
               <p className="text-[12px] text-gray-400">Filter proxies within the maximum latency range.</p>
               <div className="flex grow w-full justify-end items-end">
                 <Badge className="text-[#0058BC] bg-[#D8E2FF] text-[12px]">
-                  {timeout}ms
+                  {settings.timeoutMS}ms
                 </Badge>
               </div>
             </div>
           </div>
-          <Slider onValueChange={(v) => setTimeout(v as number)} className="mt-2" defaultValue={[timeout]} max={20000} step={100} />
+          <Slider onValueChange={(v) => {
+            setSettings((settings) => {
+              return {...settings, timeoutMS: v as number}
+            })
+          }} className="mt-2" value={[settings.timeoutMS]} max={20000} step={100} />
           <p className="mt-5 text-gray-400 text-[12px]">
             Our proxy checker uses <URI_Tooltip /> schemes to detect multi protocol proxies. Your file must contain proxies in <URI_Tooltip /> format.
           </p>
@@ -115,13 +159,13 @@ export default function Settings() {
       {/* end */}
 
       <div className="flex items-center grow gap-x-2 justify-end mt-10">
-        <motion.div whileHover={{
+        <motion.div onClick={() => saveSettings()} whileHover={{
           scale: 1.04,
         }} className="bg-[#0A84FF] rounded-xl px-5 py-2 text-[14px] cursor-pointer">
           Save Changes
         </motion.div>
 
-        <div className="cursor-pointer text-gray-400 text-[13px] hover:underline">Restore defaults</div>
+        <div onClick={() => restoreDefaults()} className="cursor-pointer text-gray-400 text-[13px] hover:underline">Restore defaults</div>
       </div>
     </div>
   )

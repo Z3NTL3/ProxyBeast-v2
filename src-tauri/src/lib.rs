@@ -99,7 +99,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::check_proxy_list,
             commands::stop_check,
-            commands::read_file
+            commands::read_file,
+            commands::retrieve_settings,
+            commands::save_settings
         ])
         .setup(|app| {
             let subscriber = Registry::default()
@@ -133,7 +135,7 @@ pub fn run() {
                 fd_state: AtomicBool::new(false),
                 workers_state: AtomicBool::new(false),
                 signal: RwLock::new(CancellationToken::new()),
-                pipe: bounded(1000),
+                pipe: bounded(app_config.pool_size as usize),
             };
 
             app.manage(AppState {

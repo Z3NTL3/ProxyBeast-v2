@@ -12,6 +12,9 @@ import { Toaster } from "@/components/ui/sonner"
 import "./App.css";
 import logo from "./assets/logo.png";
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { PiLightningDuotone } from "react-icons/pi";
+import { IoHammerOutline } from "react-icons/io5";
+
 
 export const Layout = memo(() => {
   let screenData = useContext(ScreenContext)
@@ -58,9 +61,9 @@ export const Layout = memo(() => {
           {/*end*/}
 
           <div className="mt-100 flex w-full h-[0.2px] bg-white/20"></div>
-          <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/40 hover:text-white hover:cursor-pointer">
-            <FaRegQuestionCircle />
-            Support
+          <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/60 hover:text-white hover:cursor-pointer">
+            <PiLightningDuotone size={15} />
+            Humanly Engineered
           </p>
         </motion.div>
         <main className="flex flex-col w-full h-full items-start">

@@ -21,6 +21,7 @@ function App() {
   let [id, setId] = useState<NodeJS.Timeout | null>(null);
   let [live_pane, dead_pane, progress] = [useRef(0), useRef(0), useRef(0)]
   let [load_pane, setLoad] = useState(0)
+  // @ts-ignore
   let [proxies, setProxies] = useState<string[]>([])
 
   useEffect(() => {
@@ -155,6 +156,7 @@ function App() {
     progress.current = p
   }
 
+  console.log(progress.current)
   return (
     <div className="w-full h-full overflow-hidden" ref={scope}>
       <div className="flex p-4 w-full h-fit">
@@ -188,8 +190,7 @@ function App() {
 
           <h3>Drop your proxy list here</h3>
           <p className="text-[13px] text-white/50">
-            Press in this box to select your proxy list
-            file
+            Press inside to select your proxy list file
           </p>
         </div>
 
@@ -227,11 +228,13 @@ function App() {
                 <h2 className="text-xs text-white/40">Progress</h2>
 
                 <div className="flex w-full justify-end text-white/40 text-xs">
-                  0%
+                  {progress.current.toFixed(0)}%
                 </div>
               </div>
               <div className="border border-white/20 bg-[#2A2A45] w-full h-2 rounded-full">
-                <motion.div layout className={`bg-blue-500 w-[%${progress.current}] h-full rounded-md`}></motion.div>
+                <motion.div layout animate={{
+                  width: `${progress.current.toFixed(0)}%`
+                }} className={`bg-blue-500 h-full rounded-md`}></motion.div>
               </div>
             </div>
           </div>
