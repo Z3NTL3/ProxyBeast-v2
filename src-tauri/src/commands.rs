@@ -212,7 +212,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
         let is_set = state.proxy_checker.fd_state.load(SeqCst);
         if is_set {
             info!("ongoing so not sending anything");
-            return Err(anyhow!("ongoing operation so aborting").to_string());
+            return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
         }
 
         {

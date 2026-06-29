@@ -8,7 +8,7 @@ import { invoke, Channel } from "@tauri-apps/api/core";
 import { FaStop } from "react-icons/fa";
 import { motion, useAnimate } from "motion/react";
 import moment from "moment";
-import "./App.css";
+import "../App.css"
 import { toast } from "sonner";
 
 function App() {
@@ -146,7 +146,9 @@ function App() {
               ],
             }).then((path) => {
               if (typeof path === "string" && path.length > 1) {
-                invoke("read_file", { path });
+                invoke("read_file", { path }).catch((err) => {
+                  toast.error(String(err))
+                });
               }
             });
           }}
