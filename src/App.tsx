@@ -11,25 +11,30 @@ import { motion, useAnimate } from "motion/react";
 import moment from "moment";
 
 function App() {
-  let [logs, setLogs] = useState<Array<String>>([]);
+  let [logs, setLogs] = useState<Array<{
+    timeFormat: string,
+    msg:  string
+  }>>([]);
   let [didStart, setDidStart] = useState(false);
   let [scope, animate] = useAnimate();
+  let [id, setId] = useState<number | null>(null);
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const activity = listen("activity", (ev) => {
-      setLogs((log_) => [...log_, ev.payload as string]);
-    });
+      let segments = (ev.payload as string).split("]")
+      let timeSeg = segments[0].replace("[", "")
+      let msgSeg = segments[1]
 
-    let id = setInterval(() => {
-      let log_pane = document.getElementById("pane");
-      log_pane?.lastElementChild?.scrollIntoView(false);
-    }, 24);
+      setLogs((log_) => [...log_, {
+        timeFormat: timeSeg,
+        msg: msgSeg
+      }]);
+    });
 
     unlisten.push(activity);
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
-      clearInterval(id);
     };
   }, []);
 
@@ -46,22 +51,41 @@ function App() {
     const channel = new Channel<string>();
     channel.onmessage = (message) => {
       switch (true) {
-        case message === "proxy-checker:end":
+        case message === "proxy-checker:end": {
           console.log("stop");
           setDidStart((_) => false);
           setLogs((logs) => [
             ...logs,
-            `[${moment().format("HH:mm:ss")}] Proxy checker terminated`,
+            {
+              timeFormat: moment().format("HH:mm:ss"),
+              msg: "Proxy checker terminated"
+            }
           ]);
+
+          if (typeof id === "number") {
+            clearInterval(id)
+            setId(null)
+          }
           break;
-        case message === "proxy-checker:start":
+        }
+        case message === "proxy-checker:start":{
           console.log("start");
+          let id = setInterval(() => {
+            let log_pane = document.getElementById("pane");
+            log_pane?.lastElementChild?.scrollIntoView(false);
+          }, 24);
+
+          setId(id)
           setDidStart((_) => true);
           setLogs((logs) => [
             ...logs,
-            `[${moment().format("HH:mm:ss")}] Proxy checker initialized`,
+            {
+              timeFormat: moment().format("HH:mm:ss"),
+              msg: "Proxy checker initialized"
+            }
           ]);
           break;
+        }
         case message.includes("proxy|good"): {
           let ack = message
             .split("proxy|good|")[1]
@@ -74,7 +98,10 @@ function App() {
 
           setLogs((logs) => [
             ...logs,
-            `[${moment().format("HH:mm:ss")}] live: ${proxy} - latency ${latency}ms`,
+            {
+              timeFormat: moment().format("HH:mm:ss"),
+              msg: `live: ${proxy} - latency ${latency}ms`
+            }
           ]);
           break;
         }
@@ -84,7 +111,10 @@ function App() {
 
           setLogs((logs) => [
             ...logs,
-            `[${moment().format("HH:mm:ss")}] dead: ${proxy}`,
+            {
+              timeFormat: moment().format("HH:mm:ss"),
+              msg: `dead: ${proxy}`
+            }
           ]);
           break;
         }
@@ -134,7 +164,7 @@ function App() {
             <div className="flex items-center w-full text-white/40 text-xs">
               Total Loaded
               <div className="flex grow justify-end items-center mr-2">
-                <h4 className="text-white text-lg font-semibold">0</h4>
+                <h4 id="load-stats" className="text-white text-lg font-semibold">0</h4>
               </div>
             </div>
 
@@ -143,7 +173,7 @@ function App() {
 
               <p className="text-xs text-white/40">Live</p>
 
-              <h2 className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
+              <h2 id="live-stats" className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
                 0
               </h2>
             </div>
@@ -153,7 +183,7 @@ function App() {
 
               <p className="text-xs text-white/40">Dead</p>
 
-              <h2 className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
+              <h2 id="dead-stats" className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
                 0
               </h2>
             </div>
@@ -210,16 +240,20 @@ function App() {
         >
           {logs.map((log, i) => (
             <div key={`logview-item-${i}`} className="flex">
-              <p className="text-[13px] text-white/40">
-                {log.includes("live") || log.includes("dead") ? (
-                  <span
-                    className={`text-xs ${log.includes("live") ? "text-green-300" : "text-red-400"}`}
-                  >
-                    {log}
-                  </span>
-                ) : (
-                  log
-                )}
+              <p className="text-white/40">
+                <span className="text-[#4D6AF0]/85">[{log.timeFormat}]</span>
+                <span className="ml-1">
+                  {log.msg.includes("live") || log.msg.includes("dead") ? (
+                    <span
+                      className={`${log.msg.includes("live") ? "text-green-300" : "text-red-400"}`}
+                    >
+                      {log.msg}
+                    </span>
+                  ) : (
+                    log.msg
+                  )}
+                </span>
+
               </p>
             </div>
           ))}

@@ -37,7 +37,7 @@ export const Layout = memo(() => {
       <div
         className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden"
       >
-        <motion.div layout animate={{opacity: [0, 1]}} className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
+        <motion.div layout className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
           {/*logo*/}
           <div data-tauri-drag-region className="flex items-center">
             <img width={40} src={logo} />
