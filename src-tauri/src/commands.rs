@@ -205,7 +205,7 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 
 #[tauri::command]
 pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> {
-    let task: anyhow::Result<bool> = {
+    let task: JoinHandle<Result<bool, String>> = tokio::spawn(async move {
         let state = handle.state::<crate::AppState>();
         let sender = state.proxy_checker.pipe.0.clone();
 
@@ -222,16 +222,20 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<bool, String> 
             }
         }
 
-        let contents = fs::read(path).await.map_err(|err| err.to_string())?;
-        state.proxy_checker.fd_state.store(true, SeqCst);
-
-        let mut lines = contents.lines();
-        while let Some(line) = lines.next_line().await.ok().flatten() {
-            let _ = sender.send(line).await.map_err(|err| err.to_string())?;
+        let contents = fs::read(path).await;
+        match contents {
+            Ok(contents) => {
+                state.proxy_checker.fd_state.store(true, SeqCst);
+                let mut lines = contents.lines();
+                while let Some(line) = lines.next_line().await.ok().flatten() {
+                    sender.try_send(line);
+                };
+            }
+            Err(err) => {
+                return Err(err.to_string());
+            }
         }
         Ok(true)
-    };
-
-    tokio::spawn(async move { task });
-    Ok(true)
+    });
+    task.await.map_err(|err| err.to_string())?
 }

@@ -146,7 +146,10 @@ function App() {
               ],
             }).then((path) => {
               if (typeof path === "string" && path.length > 1) {
-                invoke("read_file", { path }).catch((err) => {
+                invoke("read_file", { path }).then((_) => {
+                  console.log("reactie")
+                  toast.info("Selected proxy file")
+                }).catch((err) => {
                   toast.error(String(err))
                 });
               }
