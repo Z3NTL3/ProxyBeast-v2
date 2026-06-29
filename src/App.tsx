@@ -1,5 +1,4 @@
-import { memo, useEffect, useState } from "react";
-import "./App.css";
+import { createRef, memo, RefObject, useEffect, useState } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { AiOutlineCloudUpload } from "react-icons/ai";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -9,6 +8,7 @@ import { invoke, Channel } from "@tauri-apps/api/core";
 import { FaStop } from "react-icons/fa";
 import { motion, useAnimate } from "motion/react";
 import moment from "moment";
+import "./App.css";
 
 function App() {
   let [logs, setLogs] = useState<Array<{
@@ -18,6 +18,7 @@ function App() {
   let [didStart, setDidStart] = useState(false);
   let [scope, animate] = useAnimate();
   let [id, setId] = useState<number | null>(null);
+  let [live_pane, dead_pane, load_pane]: Array<RefObject<HTMLHeadingElement | null>> = [createRef(), createRef(), createRef()]
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
@@ -154,7 +155,7 @@ function App() {
 
           <h3>Drop your proxy list here</h3>
           <p className="text-[13px] text-white/50">
-            You simply drag or click in this box to select your proxy list
+            Press in this box to select your proxy list
             file
           </p>
         </div>
@@ -164,7 +165,7 @@ function App() {
             <div className="flex items-center w-full text-white/40 text-xs">
               Total Loaded
               <div className="flex grow justify-end items-center mr-2">
-                <h4 id="load-stats" className="text-white text-lg font-semibold">0</h4>
+                <h4 ref={load_pane} className="text-white text-lg font-semibold">0</h4>
               </div>
             </div>
 
@@ -173,7 +174,7 @@ function App() {
 
               <p className="text-xs text-white/40">Live</p>
 
-              <h2 id="live-stats" className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
+              <h2 ref={live_pane} className="flex grow items-center justify-end mr-1 text-green-600 font-semibold text-2xl">
                 0
               </h2>
             </div>
@@ -183,7 +184,7 @@ function App() {
 
               <p className="text-xs text-white/40">Dead</p>
 
-              <h2 id="dead-stats" className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
+              <h2 ref={dead_pane} className="flex grow items-center justify-end mr-1 text-red-600 font-semibold text-2xl">
                 0
               </h2>
             </div>

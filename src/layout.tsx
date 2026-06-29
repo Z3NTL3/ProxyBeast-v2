@@ -53,26 +53,21 @@ export const Layout = memo(() => {
           <div className="flex flex-col gap-y-4 mt-10">
             {SCREENS.map((screen_, i) => (
               <React.Fragment key={`screen-${i}`}>
+                <a key={`screen-${i}`} href={screen_.href} onClick={async () => {
+                  await invoke("stop_check")
+                  return true;
+                }}>
                 {
                   screen === screen_.title ?
-                    <a key={`screen-${i}`} href={screen_.href} onClick={async () => {
-                      await invoke("stop_check")
-                      return true;
-                    }}>
                       <motion.div animate={{scaleY: [0,1]}} className="hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)] bg-[#0A84FF] cursor-pointer flex items-center gap-x-2 px-2 py-1.5 rounded-lg font-inter text-[13px] text-left">
                         {screen_.node}
                       </motion.div>
-                    </a>
                     :
-                    <a key={`screen-${i}`} href={screen_.href}  onClick={async () => {
-                      await invoke("stop_check")
-                      return true;
-                    }}>
-                      <div className="text-white/40 cursor-pointer flex items-center gap-x-2 px-2 py-1.5 rounded-lg font-inter text-[13px] text-left">
+                      <div className="hover:text-white/60 text-white/40 cursor-pointer flex items-center gap-x-2 px-2 py-1.5 rounded-lg font-inter text-[13px] text-left">
                         {screen_.node}
                       </div>
-                    </a>
-                }
+                  }
+                </a>
               </React.Fragment>
             ))}
           </div>

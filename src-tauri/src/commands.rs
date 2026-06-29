@@ -54,7 +54,11 @@ pub async fn check_proxy_list(
     let ongoing = state.proxy_checker.workers_state.load(SeqCst);
     let fd_state = state.proxy_checker.fd_state.load(SeqCst);
     if ongoing | !fd_state {
-        return Err("ongoing".into());
+        if(!fd_state) {
+            return Err("proxy list missing".into());
+        }
+
+        return Err("ongoing".into())
     }
 
     let d = Duration::from_millis(6000);
