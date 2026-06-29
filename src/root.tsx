@@ -11,47 +11,49 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import useLoad from "./hooks/useLoad.ts";
 import { ScreenContext, ScreenData } from "./screen.context.ts";
 import "./App.css";
-import { VERSION } from "./app.version.ts";
 
 const Root = () => {
   useLoad();
   let [screenData, setScreenData] = useState<ScreenData>({
-    app_version: VERSION,
+    version: "1.0.0",
     current: "Overview"
   })
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const cargo_ver = listen("app_version", (ev) => {
-      setScreenData((v) => {
+      sessionStorage.setItem("version", ev.payload as string)
+      setScreenData((data) => {
         return {
-          ...v,
-          app_version: ev.payload as string
+          ...data,
+          version: ev.payload as string
         }
-      });
+      })
     });
+
     unlisten.push(cargo_ver);
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
     };
-  }, [screenData.app_version]);
+  }, [screenData.version]);
 
   return (
-    <ScreenContext value={{
-      ...screenData,
-      setData: setScreenData
-    }}>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<App />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/credits" element={<Credits />} />
-          </Route>
-          <Route path="/bootstrap" element={<Bootstrap />} />
-        </Routes>
-        </BrowserRouter>
-    </ScreenContext>
+
+    <BrowserRouter>
+      <ScreenContext value={{
+        ...screenData,
+        setData: setScreenData
+      }}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<App />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/credits" element={<Credits />} />
+            </Route>
+            <Route path="/bootstrap" element={<Bootstrap />} />
+          </Routes>
+      </ScreenContext>
+    </BrowserRouter>
   )
 }
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

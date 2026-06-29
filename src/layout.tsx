@@ -13,7 +13,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { Toaster } from "@/components/ui/sonner"
 import "./App.css";
 import logo from "./assets/logo.png";
-import { VERSION } from "./app.version.ts";
 
 
 export const Layout = memo(() => {
@@ -32,7 +31,7 @@ export const Layout = memo(() => {
         {/*end*/}
 
         {/*version*/}
-        <p className="text-xs text-white/40 mt-2 ml-1">v{screenData.app_version}</p>
+        <p className="text-xs text-white/40 mt-2 ml-1">v{sessionStorage.getItem("version")}</p>
         {/*end*/}
 
         {/*items*/}
