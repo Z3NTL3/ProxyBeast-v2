@@ -5,7 +5,7 @@
 
 # Proxybeast
 
-ProxyBeast is a powerful, complete and free proxy checker with zero dependency and advanced capabilities.
+ProxyBeast is a powerful, complete and free proxy checker with advanced capabilities.
 
 > [!NOTE]  
 > WRITTEN BY REAL HUMAN BEINGS

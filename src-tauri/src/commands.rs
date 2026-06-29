@@ -193,7 +193,9 @@ pub async fn check_proxy_list(
 
 #[tauri::command]
 pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), ()> {
-    state.proxy_checker.signal.read().await.cancel();
+    if state.proxy_checker.workers_state.load(SeqCst) {
+        state.proxy_checker.signal.read().await.cancel();
+    }
     Ok(())
 }
 
