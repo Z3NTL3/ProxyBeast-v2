@@ -55,10 +55,10 @@ pub async fn check_proxy_list(
     let fd_state = state.proxy_checker.fd_state.load(SeqCst);
     if ongoing | !fd_state {
         if(!fd_state) {
-            return Err("proxy list missing".into());
+            return Err("Upload a proxy list file".into());
         }
 
-        return Err("ongoing".into())
+        return Err("Cannot upload new proxy file when there is ongoing operation.".into())
     }
 
     let d = Duration::from_millis(6000);

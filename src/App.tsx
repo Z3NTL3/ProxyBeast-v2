@@ -9,6 +9,7 @@ import { FaStop } from "react-icons/fa";
 import { motion, useAnimate } from "motion/react";
 import moment from "moment";
 import "./App.css";
+import { toast } from "sonner";
 
 function App() {
   let [logs, setLogs] = useState<Array<{
@@ -17,7 +18,7 @@ function App() {
   }>>([]);
   let [didStart, setDidStart] = useState(false);
   let [scope, animate] = useAnimate();
-  let [id, setId] = useState<number | null>(null);
+  let [id, setId] = useState<NodeJS.Timeout | null>(null);
   let [live_pane, dead_pane, load_pane]: Array<RefObject<HTMLHeadingElement | null>> = [createRef(), createRef(), createRef()]
 
   useEffect(() => {
@@ -124,6 +125,8 @@ function App() {
 
     invoke("check_proxy_list", {
       chan: channel,
+    }).catch((err) => {
+      toast.error(String(err))
     });
   };
 

@@ -5,13 +5,15 @@ import { MdOutlineClose } from "react-icons/md";
 import { MdMinimize } from "react-icons/md";
 import { Window } from "@tauri-apps/api/window";
 import { Outlet } from "react-router";
-import "./App.css";
-import logo from "./assets/logo.png";
 import useLoad from "./hooks/useLoad";
 import { motion } from "motion/react";
 import { ScreenContext } from "./screen.context";
 import { SCREENS } from "./screens.tsx";
 import { invoke } from "@tauri-apps/api/core";
+import { Toaster } from "@/components/ui/sonner"
+import "./App.css";
+import logo from "./assets/logo.png";
+
 
 export const Layout = memo(() => {
   useLoad();
@@ -105,6 +107,7 @@ export const Layout = memo(() => {
             ease: "easeIn"
           }}>
             <Outlet />
+            <Toaster />
           </motion.div>
         </main>
       </div>
