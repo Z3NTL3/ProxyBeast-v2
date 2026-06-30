@@ -59,46 +59,43 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 
 #[tauri::command]
 pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
-    let task: JoinHandle<Result<u16, String>> = tokio::spawn(async move {
-        let state = handle.state::<crate::AppState>();
-        let sender = state.proxy_checker.pipe.0.clone();
+    let state = handle.state::<crate::AppState>();
+    let sender = state.proxy_checker.pipe.0.clone();
 
-        let is_set = state.proxy_checker.fd_state.load(SeqCst);
-        if is_set {
-            info!("ongoing so not sending anything");
-            return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
+    let is_set = state.proxy_checker.fd_state.load(SeqCst);
+    if is_set {
+        info!("ongoing so not sending anything");
+        return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
+    }
+
+    {
+        let receiver = state.proxy_checker.pipe.1.clone();
+        while !receiver.is_empty() {
+            receiver.try_recv();
         }
+    }
 
-        {
-            let receiver = state.proxy_checker.pipe.1.clone();
-            while !receiver.is_empty() {
-                receiver.try_recv();
-            }
+    let contents = fs::read(path).await;
+    let mut load: u16 = 0;
+
+    match contents {
+        Ok(contents) => {
+            state.proxy_checker.fd_state.store(true, SeqCst);
+            let mut lines = contents.lines();
+            while let Some(line) = lines.next_line().await.ok().flatten() {
+                load += 1;
+
+                let sender_clone = sender.clone();
+                tokio::spawn(async move {
+                    sender_clone.send(line).await;
+                });
+            };
         }
-
-        let contents = fs::read(path).await;
-        let mut load: u16 = 0;
-
-        match contents {
-            Ok(contents) => {
-                state.proxy_checker.fd_state.store(true, SeqCst);
-                let mut lines = contents.lines();
-                while let Some(line) = lines.next_line().await.ok().flatten() {
-                    load += 1;
-
-                    let sender_clone = sender.clone();
-                    tokio::spawn(async move {
-                        sender_clone.send(line).await;
-                    });
-                };
-            }
-            Err(err) => {
-                return Err(err.to_string());
-            }
+        Err(err) => {
+            return Err(err.to_string());
         }
-        Ok(load)
-    });
-    task.await.map_err(|err| err.to_string())?
+    }
+    Ok(load)
 }
 
 /// Invoke this tauri command by [`check_proxy_list`] to initiate proxy checking, beaware that [`read_file`] must be called prior.
