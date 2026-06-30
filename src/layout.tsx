@@ -25,7 +25,7 @@ export const Layout = memo(() => {
       >
         <motion.div whileInView={{opacity: [0, 1]}} layout className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40">
           {/*logo*/}
-          <div data-tauri-drag-region className="flex items-center">
+          <div data-tauri-drag-region className={`${PLATFORM === "macos" ? "mt-0": null} flex items-center`}>
             <img width={40} src={logo} />
             <h2 className="text-[24px] font-bold">ProxyBeast</h2>
           </div>
@@ -59,7 +59,7 @@ export const Layout = memo(() => {
           </div>
           {/*end*/}
 
-          <div className="mt-100 flex w-full h-[0.2px] bg-white/20"></div>
+          <div className={`${PLATFORM === "macos" ? "mt-95" : "mt-98"} flex w-full h-[0.2px] bg-white/20`}></div>
           <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/60 hover:text-white hover:cursor-pointer">
             <PiLightningDuotone size={15} />
             Humanly Engineered
