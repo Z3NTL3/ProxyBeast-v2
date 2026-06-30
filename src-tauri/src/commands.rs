@@ -177,7 +177,7 @@ pub async fn check_proxy_list(
 
             let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
-                while receiver.len() != 0 && !token.is_cancelled() {
+                't1: while receiver.len() != 0 && !token.is_cancelled() {
                     let app_clone = app_clone.clone();
                     let proxy = receiver.try_recv();
                     if proxy.is_ok() {
@@ -235,7 +235,7 @@ pub async fn check_proxy_list(
                             biased;
                             _ = token.cancelled() => {
                                  info!("task was cancelled");
-                                 break;
+                                 break 't1;
                             }
                             res = task => {
                                 match res {
