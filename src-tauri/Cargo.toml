@@ -36,3 +36,4 @@ serde_with = { version = "3.21.0", features = ["macros"] }
 url = "2.5.8"
 anyhow = "1.0.102"
 async-channel = "2.5.0"
+base64 = "0.22.1"

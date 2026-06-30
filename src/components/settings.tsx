@@ -101,6 +101,26 @@ export default function Settings() {
 
           {/* sub item */}
           <div className="flex mt-2">
+            <div className="flex flex-col">
+              <h3 className="text-[14px] text-gray-300">TLS</h3>
+              <p className="text-[12px] text-gray-400">Wire proxy with TLS.</p>
+            </div>
+            <div className="flex grow  justify-end items-center">
+              <Tooltip>
+                <TooltipTrigger>
+                  <Switch checked disabled/>
+                </TooltipTrigger>
+
+                <TooltipContent  className="text-[12px] ">
+                  This feature is not implemented yet and is currently enabled by default.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+          {/* end */}
+
+          {/* sub item */}
+          <div className="flex mt-2">
             <div className="flex w-full flex-col">
               <h3 className="text-[14px] text-gray-300">Pool Size</h3>
               <p className="text-[12px] text-gray-400">Customize the worker pool size.</p>
@@ -151,7 +171,7 @@ export default function Settings() {
           <p className="mt-5 text-gray-400 text-[12px]">
             Our proxy checker uses <URI_Tooltip /> schemes to detect multi protocol proxies. Your file must contain proxies in <URI_Tooltip /> format.
           </p>
-           <span className="underline mt-4 text-gray-400 text-[12px]">We will add an option to force select a protocol scheme for proxy lists without proper URI format.</span>
+           <span className="underline mt-4 text-gray-400 text-[12px]">We will add an option to force select a protocol scheme over lists with improper format URIs.</span>
           {/* end */}
         </div>
         {/* end */}

@@ -1,9 +1,15 @@
 #![allow(unused)]
 use anyhow::anyhow;
+use http::Uri;
 use proxifier_rs::auth::Auth;
-use proxifier_rs::{NetworkTarget, Port, ServerName};
+use proxifier_rs::{NetworkTarget, Port, ServerName, {
+    http::tunnel as http_tunnel,
+    https::HttpsProxy,
+    socks4::connect as socks4_connect,
+    socks5::connect as socks5_connect
+}};
 use serde::de::Unexpected::Seq;
-use std::net::SocketAddrV4;
+use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs};
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release, SeqCst};
@@ -17,7 +23,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use url::Url;
 use tauri::path::BaseDirectory;
-
+use base64::prelude::*;
 use crate::models;
 
 #[derive(Debug)]
@@ -59,46 +65,43 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
 
 #[tauri::command]
 pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
-    let task: JoinHandle<Result<u16, String>> = tokio::spawn(async move {
-        let state = handle.state::<crate::AppState>();
-        let sender = state.proxy_checker.pipe.0.clone();
+    let state = handle.state::<crate::AppState>();
+    let sender = state.proxy_checker.pipe.0.clone();
 
-        let is_set = state.proxy_checker.fd_state.load(SeqCst);
-        if is_set {
-            info!("ongoing so not sending anything");
-            return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
+    let is_set = state.proxy_checker.fd_state.load(SeqCst);
+    if is_set {
+        info!("ongoing so not sending anything");
+        return Err(anyhow!("Clear your proxy file before uploading a new one").to_string());
+    }
+
+    {
+        let receiver = state.proxy_checker.pipe.1.clone();
+        while !receiver.is_empty() {
+            receiver.try_recv();
         }
+    }
 
-        {
-            let receiver = state.proxy_checker.pipe.1.clone();
-            while !receiver.is_empty() {
-                receiver.try_recv();
-            }
+    let contents = fs::read(path).await;
+    let mut load: u16 = 0;
+
+    match contents {
+        Ok(contents) => {
+            state.proxy_checker.fd_state.store(true, SeqCst);
+            let mut lines = contents.lines();
+            while let Some(line) = lines.next_line().await.ok().flatten() {
+                load += 1;
+
+                let sender_clone = sender.clone();
+                tokio::spawn(async move {
+                    sender_clone.send(line).await;
+                });
+            };
         }
-
-        let contents = fs::read(path).await;
-        let mut load: u16 = 0;
-
-        match contents {
-            Ok(contents) => {
-                state.proxy_checker.fd_state.store(true, SeqCst);
-                let mut lines = contents.lines();
-                while let Some(line) = lines.next_line().await.ok().flatten() {
-                    load += 1;
-
-                    let sender_clone = sender.clone();
-                    tokio::spawn(async move {
-                        sender_clone.send(line).await;
-                    });
-                };
-            }
-            Err(err) => {
-                return Err(err.to_string());
-            }
+        Err(err) => {
+            return Err(err.to_string());
         }
-        Ok(load)
-    });
-    task.await.map_err(|err| err.to_string())?
+    }
+    Ok(load)
 }
 
 /// Invoke this tauri command by [`check_proxy_list`] to initiate proxy checking, beaware that [`read_file`] must be called prior.
@@ -196,7 +199,7 @@ pub async fn check_proxy_list(
                                             auth = Auth::UserPass(uri.username().into(), pass.into())
                                         }
 
-                                        let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
+                                        let mut conn = proxifier_rs::socks_with_tls(socks5_connect(
                                             proxifier_rs::Context {
                                                 proxy: format!("{}:{}",
                                                     uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
@@ -207,9 +210,9 @@ pub async fn check_proxy_list(
                                             },
                                             auth,
                                         )
-                                        .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
+                                        .await?, state.tls_config.clone(), ServerName::try_from("google.com")?).await?;
 
-                                        conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                        conn.write(b"GET / HTTP/1.1\r\nHost: google.com:443\r\nConnection: close\r\n\r\n")
                                             .await?;
 
                                         let mut resp = String::new();
@@ -218,6 +221,7 @@ pub async fn check_proxy_list(
                                     }
                                     _  => {
                                         //info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
+                                        return Err(anyhow!("unknown proxy scheme"));
                                     }
                                 }
 
@@ -238,13 +242,11 @@ pub async fn check_proxy_list(
                                     Ok(res) => {
                                         match res {
                                             Ok(ack) => {
-
                                                 count.fetch_add(1, SeqCst);
                                                 info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
                                                 chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
                                             }
                                             Err(err) => {
-
                                                 count.fetch_add(1, SeqCst);
                                                 info!("proxy:bad:{}", proxy);
                                                 chan.send(format!("proxy|bad|{}", proxy));
