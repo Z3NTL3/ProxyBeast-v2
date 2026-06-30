@@ -235,13 +235,11 @@ pub async fn check_proxy_list(
                                     Ok(res) => {
                                         match res {
                                             Ok(ack) => {
-
                                                 count.fetch_add(1, SeqCst);
                                                 info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
                                                 chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
                                             }
                                             Err(err) => {
-
                                                 count.fetch_add(1, SeqCst);
                                                 info!("proxy:bad:{}", proxy);
                                                 chan.send(format!("proxy|bad|{}", proxy));
