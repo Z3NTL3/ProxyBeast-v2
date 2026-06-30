@@ -1,11 +1,11 @@
 use async_channel::{Receiver, Sender, bounded};
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
-use tauri::path::BaseDirectory;
 use std::fs;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Listener, Manager, async_runtime};
 use tokio::sync::RwLock;
 use tracing::field::Visit;
@@ -20,7 +20,7 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 struct AppState {
     proxy_checker: ProxyChecker,
     tls_config: Arc<ClientConfig>,
-    app_config: RwLock<models::AppConfig>
+    app_config: RwLock<models::AppConfig>,
 }
 
 struct ProxyChecker {
@@ -94,6 +94,7 @@ impl Visit for MessageVisitor {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -141,7 +142,7 @@ pub fn run() {
             app.manage(AppState {
                 proxy_checker: checker,
                 tls_config: config,
-                app_config: RwLock::new(app_config)
+                app_config: RwLock::new(app_config),
             });
 
             let windows = app.webview_windows();

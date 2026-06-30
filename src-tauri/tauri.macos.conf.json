@@ -1,0 +1,17 @@
+{
+  "app": {
+    "windows": [
+      {
+        "theme": "Light",
+        "title": "ProxyBeast",
+        "width": 1000,
+        "height": 700,
+        "visible": false,
+        "maximizable": false,
+        "resizable": false,
+        "center": true,
+        "titleBarStyle": "Transparent"
+      }
+    ]
+  }
+}

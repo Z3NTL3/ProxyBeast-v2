@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "theme": "Light",
         "title": "ProxyBeast",
         "width": 1000,
         "height": 700,

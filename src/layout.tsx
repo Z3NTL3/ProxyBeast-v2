@@ -12,10 +12,12 @@ import "./App.css";
 import logo from "./assets/logo.png";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { PiLightningDuotone } from "react-icons/pi";
+import { platform } from '@tauri-apps/plugin-os';
+
+const PLATFORM = platform();
 
 export const Layout = memo(() => {
   let screenData = useContext(ScreenContext)
-
   return (
     <TooltipProvider>
       <div
@@ -70,7 +72,7 @@ export const Layout = memo(() => {
             className="flex bg-[#2A2A45] w-full h-10 p-3 font-inter text-[13px] text-white/80 border-b border-[#808080]/40"
           >
             {screenData.current}
-            <div className="flex grow items-center justify-end gap-x-1">
+            <div className={`${PLATFORM === "macos" ? "hidden": "flex grow items-center justify-end gap-x-1"}`}>
               <MdMinimize
                 className="font-bold"
                 fontSize={18}

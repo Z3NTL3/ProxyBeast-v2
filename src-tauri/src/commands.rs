@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release, SeqCst};
 use std::time::Duration;
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::task::JoinHandle;
@@ -16,7 +17,6 @@ use tokio::{fs, join, select};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use url::Url;
-use tauri::path::BaseDirectory;
 
 use crate::models;
 
@@ -29,9 +29,14 @@ struct Ack<'a> {
 
 #[tauri::command]
 pub async fn save_settings(app: AppHandle, payload: models::AppConfig) -> Result<bool, String> {
-    let resource_path = app.path().resolve("config.json", BaseDirectory::Resource).map_err(|err| err.to_string())?;
+    let resource_path = app
+        .path()
+        .resolve("config.json", BaseDirectory::Resource)
+        .map_err(|err| err.to_string())?;
     let ser = serde_json::to_vec(&payload).map_err(|err| err.to_string())?;
-    tokio::fs::write(resource_path, &ser).await.map_err(|err| err.to_string())?;
+    tokio::fs::write(resource_path, &ser)
+        .await
+        .map_err(|err| err.to_string())?;
 
     let state = app.state::<crate::AppState>();
     let mut guard = state.app_config.write().await;
@@ -89,7 +94,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
                 tokio::spawn(async move {
                     sender_clone.send(line).await;
                 });
-            };
+            }
         }
         Err(err) => {
             return Err(err.to_string());
@@ -131,16 +136,15 @@ pub async fn check_proxy_list(
     let ongoing = state.proxy_checker.workers_state.load(SeqCst);
     let fd_state = state.proxy_checker.fd_state.load(SeqCst);
     if ongoing | !fd_state {
-        if(!fd_state) {
+        if (!fd_state) {
             return Err("Upload a proxy list file".into());
         }
 
-        return Err("Cannot upload new proxy file when there is ongoing operation.".into())
+        return Err("Cannot upload new proxy file when there is ongoing operation.".into());
     }
 
     let d = state.app_config.read().await.timeout;
     info!("timeout set: {:?}", d);
-
 
     state.proxy_checker.workers_state.store(true, SeqCst);
     tokio::spawn(async move {
