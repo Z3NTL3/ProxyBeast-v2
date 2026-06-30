@@ -232,7 +232,9 @@ function App() {
                 </div>
               </div>
               <div className="border border-white/20 bg-[#2A2A45] w-full h-2 rounded-full">
-                <motion.div layout animate={{
+                <motion.div layout initial={{
+                  width: "0%"
+                }} animate={{
                   width: `${progress.current.toFixed(0)}%`
                 }} className={`bg-blue-500 h-full rounded-md`}></motion.div>
               </div>
