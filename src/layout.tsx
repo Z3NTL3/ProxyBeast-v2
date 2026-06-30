@@ -1,5 +1,4 @@
 import React, { memo, useContext } from "react";
-import { FaRegQuestionCircle } from "react-icons/fa";
 import { MdOutlineClose } from "react-icons/md";
 import { MdMinimize } from "react-icons/md";
 import { Window } from "@tauri-apps/api/window";
@@ -13,8 +12,6 @@ import "./App.css";
 import logo from "./assets/logo.png";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { PiLightningDuotone } from "react-icons/pi";
-import { IoHammerOutline } from "react-icons/io5";
-
 
 export const Layout = memo(() => {
   let screenData = useContext(ScreenContext)

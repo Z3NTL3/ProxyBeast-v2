@@ -158,6 +158,8 @@ pub async fn check_proxy_list(
         let receiver = state.proxy_checker.pipe.1.clone();
         let token = state.proxy_checker.signal.read().await;
 
+        // it's absolutely guaranteed that unwrap call will resolve to T
+        // and will never fail
         for i in 0..=sender.capacity().unwrap() {
             let count = count.clone();
             if token.is_cancelled() {
