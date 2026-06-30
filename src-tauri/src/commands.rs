@@ -141,12 +141,12 @@ pub async fn check_proxy_list(
     let d = state.app_config.read().await.timeout;
     info!("timeout set: {:?}", d);
 
+
+    state.proxy_checker.workers_state.store(true, SeqCst);
     tokio::spawn(async move {
         let mut count = Arc::new(AtomicU64::new(0));
         let state = app.state::<crate::AppState>();
         let mut tasks: Vec<JoinHandle<()>> = vec![];
-
-        state.proxy_checker.workers_state.store(true, SeqCst);
 
         info!("worker pool starting");
         chan.send("proxy-checker:start".into());
