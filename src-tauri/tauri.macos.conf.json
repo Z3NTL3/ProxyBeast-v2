@@ -5,7 +5,6 @@
         "title": "",
         "decorations": true,
         "titleBarStyle": "Overlay",
-        "theme": "Light",
         "width": 1100,
         "height": 700,
         "visible": false,
