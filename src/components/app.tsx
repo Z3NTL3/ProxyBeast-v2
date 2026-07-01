@@ -12,7 +12,7 @@ import "../App.css";
 import { toast } from "sonner";
 import { ScreenContext } from "@/screen.context";
 
-export default function App() {
+const app = function() {
   let [logs, setLogs] = useState<
     Array<{
       timeFormat: string;
@@ -324,3 +324,4 @@ export default function App() {
     </div>
   );
 }
+export default memo(app)

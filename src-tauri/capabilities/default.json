@@ -19,6 +19,9 @@
       "allow": [
         {
           "path": "$APPCACHE/saves/*"
+        },
+        {
+          "path": "$RESOURCE/*"
         }
       ]
     },

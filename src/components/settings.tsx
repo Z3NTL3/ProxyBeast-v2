@@ -33,6 +33,7 @@ export default function Settings() {
       });
     }
   }, [screen.current !== "Settings"]);
+
   useEffect(() => {
     invoke("retrieve_settings")
       .then((payload) => {
