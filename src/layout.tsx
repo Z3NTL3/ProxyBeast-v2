@@ -60,7 +60,7 @@ export const Layout = memo(() => {
           {/*end*/}
 
           <div className={`${PLATFORM === "macos" ? "mt-95" : "mt-98"} flex w-full h-[0.2px] bg-white/20`}></div>
-          <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/60 hover:text-white hover:cursor-pointer">
+          <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/60">
             <PiLightningDuotone size={15} />
             Humanly Engineered
           </p>
