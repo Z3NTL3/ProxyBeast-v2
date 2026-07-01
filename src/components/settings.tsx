@@ -56,9 +56,10 @@ export default function Settings() {
       .then((_) =>
         toast.success(restore ? "Restored to defaults" : "Saved new settings"),
       )
-      .catch(() =>
-        toast.error("Something went wrong while saving the new settings"),
-      );
+      .catch((err) => {
+        console.error(err);
+        toast.error("Something went wrong while saving the new settings");
+      });
   };
 
   const restoreDefaults = () => {

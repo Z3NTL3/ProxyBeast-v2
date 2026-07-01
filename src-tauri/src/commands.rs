@@ -31,7 +31,7 @@ struct Ack<'a> {
 pub async fn save_settings(app: AppHandle, payload: models::AppConfig) -> Result<bool, String> {
     let resource_path = app
         .path()
-        .resolve("config.json", BaseDirectory::Resource)
+        .resolve("config.json", BaseDirectory::AppConfig)
         .map_err(|err| err.to_string())?;
     let ser = serde_json::to_vec(&payload).map_err(|err| err.to_string())?;
     tokio::fs::write(resource_path, &ser)

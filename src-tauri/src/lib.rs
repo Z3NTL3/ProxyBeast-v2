@@ -5,7 +5,6 @@ use std::fs;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
-use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Listener, Manager, async_runtime};
 use tokio::sync::RwLock;
 use tracing::field::Visit;
@@ -31,6 +30,8 @@ struct ProxyChecker {
 }
 
 pub(crate) use tokio_util::sync::CancellationToken;
+
+use crate::models::AppConfig;
 
 pub(crate) mod commands;
 pub(crate) mod models;
@@ -116,11 +117,28 @@ pub fn run() {
                 })));
             tracing::subscriber::set_global_default(subscriber).unwrap();
 
-            let resource_path = app.path().resolve("config.json", BaseDirectory::Resource)?;
-            let config = fs::read_to_string(resource_path)?;
-            let app_config: models::AppConfig = serde_json::from_str(&config[..])?;
+            let _ = std::fs::create_dir(app.path().app_config_dir()?);
+            let config_file = app.path().app_config_dir()?.join("config.json");
+            let mut app_config: models::AppConfig = AppConfig {
+                timeout: Duration::from_millis(5000),
+                pool_size: 1000,
+            };
 
-            info!("App Config {:?}", config);
+            match fs::exists(config_file.clone()) {
+                Ok(exists) => {
+                    if !exists {
+                        fs::write(config_file, serde_json::to_vec(&app_config)?).unwrap();
+                    } else {
+                        let config = fs::read_to_string(config_file).unwrap();
+                        app_config = serde_json::from_str(&config[..]).unwrap();
+                    }
+                }
+                Err(_) => {
+                    fs::write(config_file, serde_json::to_vec(&app_config)?).unwrap();
+                }
+            };
+
+            info!("App config {:?}", app_config);
 
             APP_HANDLE.set(app.app_handle().to_owned()).unwrap();
             let mut root_cert_store = RootCertStore::empty();

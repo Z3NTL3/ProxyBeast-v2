@@ -12,7 +12,7 @@ import "../App.css";
 import { toast } from "sonner";
 import { ScreenContext } from "@/screen.context";
 
-const app = function() {
+const App = function () {
   let [logs, setLogs] = useState<
     Array<{
       timeFormat: string;
@@ -56,14 +56,14 @@ const app = function() {
     });
 
     unlisten.push(activity);
-    return () => {
-      unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
-    };
-  }, []);
 
-  useEffect(() => {
     let bootAt = sessionStorage.getItem("boot");
     if (bootAt !== null) setLogs((logs) => [...logs, JSON.parse(bootAt)]);
+
+    return () => {
+      unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
+      sessionStorage.removeItem("boot");
+    };
   }, []);
 
   const startChecker = async () => {
@@ -323,5 +323,5 @@ const app = function() {
       </div>
     </div>
   );
-}
-export default memo(app)
+};
+export default App;

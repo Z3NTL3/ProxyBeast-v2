@@ -1,7 +1,4 @@
-import React, {
-  memo,
-  useContext
-} from "react";
+import React, { memo, useContext } from "react";
 import { MdOutlineClose } from "react-icons/md";
 import { MdMinimize } from "react-icons/md";
 import { Window } from "@tauri-apps/api/window";
@@ -25,7 +22,10 @@ export const Layout = memo(() => {
     <TooltipProvider>
       <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
         <motion.div
-          whileInView={{ opacity: [0, 1] }}
+          initial={{
+            opacity: 0,
+          }}
+          whileInView={{ opacity: 1 }}
           layout
           className="bg-[#2A2A45] w-60 h-full p-5 border-r border-[#808080]/40"
         >
@@ -59,7 +59,10 @@ export const Layout = memo(() => {
                 >
                   {screenData.current === screen_.title ? (
                     <motion.div
-                      whileInView={{ scaleY: [0, 1] }}
+                      initial={{
+                        scaleY: 0,
+                      }}
+                      whileInView={{ scaleY: 1 }}
                       className="hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)] bg-[#0A84FF] cursor-pointer flex items-center gap-x-2 px-2 py-1.5 rounded-lg font-inter text-[13px] text-left"
                     >
                       {screen_.node}
@@ -86,7 +89,10 @@ export const Layout = memo(() => {
         <main className="flex flex-col w-full h-full items-start">
           <motion.div
             layout
-            whileInView={{ opacity: [0, 1] }}
+            initial={{
+              opacity: 0,
+            }}
+            whileInView={{ opacity: 1 }}
             data-tauri-drag-region
             className="flex bg-[#2A2A45] w-full h-10 p-3 font-inter text-[13px] text-white/80 border-b border-[#808080]/40"
           >
@@ -110,7 +116,10 @@ export const Layout = memo(() => {
           <motion.div
             className="w-full h-full"
             layout
-            whileInView={{ opacity: [0, 1] }}
+            initial={{
+              opacity: 0,
+            }}
+            whileInView={{ opacity: 1 }}
             transition={{
               type: "keyframes",
               ease: "easeIn",
