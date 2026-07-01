@@ -4,7 +4,14 @@
       {
         "title": "",
         "decorations": true,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "theme": "Light",
+        "width": 1100,
+        "height": 700,
+        "visible": false,
+        "maximizable": false,
+        "resizable": false,
+        "center": true
       }
     ]
   }
