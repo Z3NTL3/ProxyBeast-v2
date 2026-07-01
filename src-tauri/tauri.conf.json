@@ -19,7 +19,9 @@
         "maximizable": false,
         "resizable": false,
         "decorations": false,
-        "center": true
+        "center": true,
+        "backgroundColor": "#1E1E2E",
+        "backgroundThrottling": "throttle"
       }
     ],
     "security": {

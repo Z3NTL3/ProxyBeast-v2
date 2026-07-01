@@ -1,10 +1,10 @@
-import { useContext, useEffect, useState } from "react"
-import { ScreenContext } from "../screen.context"
+import { useContext, useEffect, useState } from "react";
+import { ScreenContext } from "../screen.context";
 import { LuSettings2 } from "react-icons/lu";
-import { Switch } from "@/components/ui/switch"
+import { Switch } from "@/components/ui/switch";
 import { SiTraefikproxy } from "react-icons/si";
-import { Slider } from "@/components/ui/slider"
-import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import URI_Tooltip from "./uri-tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
@@ -12,54 +12,63 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 
 interface AppSettings {
-  poolSize: number,
-  timeoutMS: number
+  poolSize: number;
+  timeoutMS: number;
 }
 
 export default function Settings() {
-  let screen = useContext(ScreenContext)
+  let screen = useContext(ScreenContext);
   let [settings, setSettings] = useState<AppSettings>({
     poolSize: 1000,
-    timeoutMS: 5000
-  })
+    timeoutMS: 5000,
+  });
 
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
       screen.setData((screen_) => {
         return {
           ...screen_,
-          current: "Settings"
-        }
-      })
+          current: "Settings",
+        };
+      });
     }
-
-    invoke("retrieve_settings").then((payload) => {
-      let cast = payload as typeof settings
-      setSettings((_) => {
-        return {
-          ...cast,
-        }
+  }, [screen.current !== "Settings"]);
+  useEffect(() => {
+    invoke("retrieve_settings")
+      .then((payload) => {
+        let cast = payload as typeof settings;
+        setSettings((_) => {
+          return {
+            ...cast,
+          };
+        });
       })
-    }).catch((err) => {
-      toast.error(String(err))
-    })
-  }, [])
+      .catch((err) => {
+        toast.error(String(err));
+      });
+  }, []);
 
   const saveSettings = (restore?: boolean) => {
     invoke("save_settings", {
-      payload: settings
-    }).then((_) => toast.success(restore ? "Restored to defaults" :"Saved new settings")).catch(() => toast.error("Something went wrong while saving the new settings"))
-  }
+      payload: settings,
+    })
+      .then((_) =>
+        toast.success(restore ? "Restored to defaults" : "Saved new settings"),
+      )
+      .catch(() =>
+        toast.error("Something went wrong while saving the new settings"),
+      );
+  };
 
   const restoreDefaults = () => {
     setSettings((_) => {
       return {
         poolSize: 1000,
-        timeoutMS: 5000
-      }
-    })
-    saveSettings(true)
-  }
+        timeoutMS: 5000,
+      };
+    });
+    saveSettings(true);
+  };
 
   return (
     <div className="flex flex-col p-5 mx-8 mt-10">
@@ -68,10 +77,8 @@ export default function Settings() {
         Configure your applications settings.
       </p>
 
-
       {/* settings pane */}
       <div className="grid grid-cols-2 gap-x-10 items-start justify-center mt-14">
-
         {/* pane item */}
         <div className="flex flex-col bg-[#2A2A45] w-[350px] h-fit rounded-md p-4 border border-white/20">
           <div className="flex items-center gap-x-1 mb-2">
@@ -83,15 +90,17 @@ export default function Settings() {
           <div className="flex mt-2">
             <div className="flex flex-col">
               <h3 className="text-[14px] text-gray-300">Auto-Retry</h3>
-              <p className="text-[12px] text-gray-400">Retry failed connections automatically.</p>
+              <p className="text-[12px] text-gray-400">
+                Retry failed connections automatically.
+              </p>
             </div>
             <div className="flex grow  justify-end items-center">
               <Tooltip>
                 <TooltipTrigger>
-                  <Switch disabled/>
+                  <Switch disabled />
                 </TooltipTrigger>
 
-                <TooltipContent  className="text-[12px] ">
+                <TooltipContent className="text-[12px] ">
                   This feature is not implemented yet
                 </TooltipContent>
               </Tooltip>
@@ -103,24 +112,33 @@ export default function Settings() {
           <div className="flex mt-2">
             <div className="flex w-full flex-col">
               <h3 className="text-[14px] text-gray-300">Pool Size</h3>
-              <p className="text-[12px] text-gray-400">Customize the worker pool size.</p>
+              <p className="text-[12px] text-gray-400">
+                Customize the worker pool size.
+              </p>
 
               <div className="flex grow w-full justify-end items-end">
                 <Badge className="text-[#0058BC] bg-[#D8E2FF] text-[12px]">
                   {settings.poolSize}
                 </Badge>
               </div>
-              <Slider onValueChange={(v) => {
-                setSettings((settings) => {
-                  return {...settings, poolSize: v as number}
-                })
-              }} className="mt-2" value={[settings.poolSize]} max={10_000} step={10} />
+              <Slider
+                onValueChange={(v) => {
+                  setSettings((settings) => {
+                    return { ...settings, poolSize: v as number };
+                  });
+                }}
+                className="mt-2"
+                value={[settings.poolSize]}
+                max={10_000}
+                step={10}
+              />
             </div>
           </div>
           {/* end */}
 
-          <span className="underline mt-5 text-gray-400 text-[12px]">Must restart for new pool size to take effect.</span>
-
+          <span className="underline mt-5 text-gray-400 text-[12px]">
+            Must restart for new pool size to take effect.
+          </span>
         </div>
         {/* end */}
 
@@ -135,7 +153,9 @@ export default function Settings() {
           <div className="flex mt-2">
             <div className="flex flex-col w-full">
               <h3 className="text-[14px] text-gray-300">Timeout</h3>
-              <p className="text-[12px] text-gray-400">Filter proxies within the maximum latency range.</p>
+              <p className="text-[12px] text-gray-400">
+                Filter proxies within the maximum latency range.
+              </p>
               <div className="flex grow w-full justify-end items-end">
                 <Badge className="text-[#0058BC] bg-[#D8E2FF] text-[12px]">
                   {settings.timeoutMS}ms
@@ -143,15 +163,26 @@ export default function Settings() {
               </div>
             </div>
           </div>
-          <Slider onValueChange={(v) => {
-            setSettings((settings) => {
-              return {...settings, timeoutMS: v as number}
-            })
-          }} className="mt-2" value={[settings.timeoutMS]} max={20000} step={100} />
+          <Slider
+            onValueChange={(v) => {
+              setSettings((settings) => {
+                return { ...settings, timeoutMS: v as number };
+              });
+            }}
+            className="mt-2"
+            value={[settings.timeoutMS]}
+            max={20000}
+            step={100}
+          />
           <p className="mt-5 text-gray-400 text-[12px]">
-            Our proxy checker uses <URI_Tooltip /> schemes to detect multi protocol proxies. Your file must contain proxies in <URI_Tooltip /> format.
+            Our proxy checker uses <URI_Tooltip /> schemes to detect multi
+            protocol proxies. Your file must contain proxies in <URI_Tooltip />{" "}
+            format.
           </p>
-           <span className="underline mt-4 text-gray-400 text-[12px]">We will add an option to force select a protocol scheme for proxy lists without proper URI format.</span>
+          <span className="underline mt-4 text-gray-400 text-[12px]">
+            We will add an option to force select a protocol scheme for proxy
+            lists without proper URI format.
+          </span>
           {/* end */}
         </div>
         {/* end */}
@@ -159,14 +190,23 @@ export default function Settings() {
       {/* end */}
 
       <div className="flex items-center grow gap-x-2 justify-end mt-10">
-        <motion.div onClick={() => saveSettings()} whileHover={{
-          scale: 1.04,
-        }} className="bg-[#0A84FF] rounded-xl px-5 py-2 text-[14px] cursor-pointer">
+        <motion.div
+          onClick={() => saveSettings()}
+          whileHover={{
+            scale: 1.04,
+          }}
+          className="bg-[#0A84FF] rounded-xl px-5 py-2 text-[14px] cursor-pointer"
+        >
           Save Changes
         </motion.div>
 
-        <div onClick={() => restoreDefaults()} className="cursor-pointer text-gray-400 text-[13px] hover:underline">Restore defaults</div>
+        <div
+          onClick={() => restoreDefaults()}
+          className="cursor-pointer text-gray-400 text-[13px] hover:underline"
+        >
+          Restore defaults
+        </div>
       </div>
     </div>
-  )
+  );
 }

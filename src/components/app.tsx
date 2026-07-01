@@ -1,4 +1,4 @@
-import {  memo, useEffect, useRef, useState } from "react";
+import { memo, useContext, useEffect, useRef, useState } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { AiOutlineCloudUpload } from "react-icons/ai";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -8,35 +8,50 @@ import { invoke, Channel } from "@tauri-apps/api/core";
 import { FaStop } from "react-icons/fa";
 import { motion, useAnimate } from "motion/react";
 import moment from "moment";
-import "../App.css"
+import "../App.css";
 import { toast } from "sonner";
+import { ScreenContext } from "@/screen.context";
 
-function App() {
-  let [logs, setLogs] = useState<Array<{
-    timeFormat: string,
-    msg:  string
-  }>>([]);
+export default function App() {
+  let [logs, setLogs] = useState<
+    Array<{
+      timeFormat: string;
+      msg: string;
+    }>
+  >([]);
   let [didStart, setDidStart] = useState(false);
   let [scope, animate] = useAnimate();
   let [id, setId] = useState<NodeJS.Timeout | null>(null);
-  let [live_pane, dead_pane, progress] = [useRef(0), useRef(0), useRef(0)]
-  let [load_pane, setLoad] = useState(0)
+  let [live_pane, dead_pane, progress] = [useRef(0), useRef(0), useRef(0)];
+  let [load_pane, setLoad] = useState(0);
   // @ts-ignore
-  let [proxies, setProxies] = useState<string[]>([])
+  let [proxies, setProxies] = useState<string[]>([]);
+
+  let screen = useContext(ScreenContext);
+  useEffect(() => {
+    if (typeof screen.setData !== "undefined") {
+      screen.setData((screen_) => {
+        return {
+          ...screen_,
+          current: "Overview",
+        };
+      });
+    }
+  }, [screen.current !== "Overview"]);
 
   useEffect(() => {
     const unlisten: Array<Promise<UnlistenFn>> = [];
     const activity = listen("activity", (ev) => {
-      let segments = (ev.payload as string).split("]")
-      let timeSeg = segments[0].replace("[", "")
-      let msgSeg = segments[1]
+      let segments = (ev.payload as string).split("]");
+      let timeSeg = segments[0].replace("[", "");
+      let msgSeg = segments[1];
 
       let log = {
         timeFormat: timeSeg,
-        msg: msgSeg
-      }
+        msg: msgSeg,
+      };
 
-      sessionStorage.setItem("boot", JSON.stringify(log))
+      sessionStorage.setItem("boot", JSON.stringify(log));
       setLogs((logs) => [...logs, log]);
     });
 
@@ -47,10 +62,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let bootAt = sessionStorage.getItem("boot")
-    if (bootAt !== null)
-      setLogs((logs) => [...logs, JSON.parse(bootAt)])
-  }, [])
+    let bootAt = sessionStorage.getItem("boot");
+    if (bootAt !== null) setLogs((logs) => [...logs, JSON.parse(bootAt)]);
+  }, []);
 
   const startChecker = async () => {
     animate("#checker-btn", {
@@ -66,19 +80,19 @@ function App() {
     channel.onmessage = (message) => {
       switch (true) {
         case message === "proxy-checker:end": {
-          setLoad(0)
+          setLoad(0);
           setDidStart((_) => false);
           setLogs((logs) => [
             ...logs,
             {
               timeFormat: moment().format("HH:mm:ss"),
-              msg: "Proxy checker terminated"
-            }
+              msg: "Proxy checker terminated",
+            },
           ]);
 
           if (typeof id === "number") {
-            clearInterval(id)
-            setId(null)
+            clearInterval(id);
+            setId(null);
           }
           break;
         }
@@ -92,20 +106,20 @@ function App() {
             log_pane?.lastElementChild?.scrollIntoView(false);
           }, 24);
 
-          setId(id)
+          setId(id);
           setDidStart((_) => true);
           setLogs((logs) => [
             ...logs,
             {
               timeFormat: moment().format("HH:mm:ss"),
-              msg: "Proxy checker initialized"
-            }
+              msg: "Proxy checker initialized",
+            },
           ]);
           break;
         }
         case message.includes("proxy|good"): {
           live_pane.current += 1;
-          calcProgress()
+          calcProgress();
           let ack = message
             .split("proxy|good|")[1]
             .split("|")
@@ -118,16 +132,16 @@ function App() {
             ...logs,
             {
               timeFormat: moment().format("HH:mm:ss"),
-              msg: `live: ${proxy} - latency ${latency}ms`
-            }
+              msg: `live: ${proxy} - latency ${latency}ms`,
+            },
           ]);
-          setProxies((list) => [...list, proxy])
+          setProxies((list) => [...list, proxy]);
           break;
         }
         case message.includes("proxy|bad"): {
           dead_pane.current += 1;
 
-          calcProgress()
+          calcProgress();
           let proxy = message.split("proxy|bad|")[1];
           if (proxy.length === 0) return;
 
@@ -135,8 +149,8 @@ function App() {
             ...logs,
             {
               timeFormat: moment().format("HH:mm:ss"),
-              msg: `dead: ${proxy}`
-            }
+              msg: `dead: ${proxy}`,
+            },
           ]);
           break;
         }
@@ -146,17 +160,16 @@ function App() {
     invoke("check_proxy_list", {
       chan: channel,
     }).catch((err) => {
-      toast.error(String(err))
+      toast.error(String(err));
     });
   };
 
   const calcProgress = () => {
     let current_progress = live_pane.current + dead_pane.current;
-    let p = (current_progress / load_pane) * 100
-    progress.current = p
-  }
+    let p = (current_progress / load_pane) * 100;
+    progress.current = p;
+  };
 
-  console.log(progress.current)
   return (
     <div className="w-full h-full overflow-hidden" ref={scope}>
       <div className="flex p-4 w-full h-fit">
@@ -173,12 +186,14 @@ function App() {
               ],
             }).then((path) => {
               if (typeof path === "string" && path.length > 1) {
-                invoke("read_file", { path }).then((v) => {
-                  setLoad(v as number)
-                  toast.info("Selected proxy file")
-                }).catch((err) => {
-                  toast.error(String(err))
-                });
+                invoke("read_file", { path })
+                  .then((v) => {
+                    setLoad(v as number);
+                    toast.info("Selected proxy file");
+                  })
+                  .catch((err) => {
+                    toast.error(String(err));
+                  });
               }
             });
           }}
@@ -199,7 +214,9 @@ function App() {
             <div className="flex items-center w-full text-white/40 text-xs">
               Total Loaded
               <div className="flex grow justify-end items-center mr-2">
-                <h4 className="text-white text-lg font-semibold">{load_pane}</h4>
+                <h4 className="text-white text-lg font-semibold">
+                  {load_pane}
+                </h4>
               </div>
             </div>
 
@@ -232,11 +249,16 @@ function App() {
                 </div>
               </div>
               <div className="border border-white/20 bg-[#2A2A45] w-full h-2 rounded-full">
-                <motion.div layout initial={{
-                  width: "0%"
-                }} animate={{
-                  width: `${progress.current.toFixed(0)}%`
-                }} className={`bg-blue-500 h-full rounded-md`}></motion.div>
+                <motion.div
+                  layout
+                  initial={{
+                    width: "0%",
+                  }}
+                  animate={{
+                    width: `${progress.current.toFixed(0)}%`,
+                  }}
+                  className={`bg-blue-500 h-full rounded-md`}
+                ></motion.div>
               </div>
             </div>
           </div>
@@ -294,7 +316,6 @@ function App() {
                     log.msg
                   )}
                 </span>
-
               </p>
             </div>
           ))}
@@ -303,4 +324,3 @@ function App() {
     </div>
   );
 }
-export default memo(App);
