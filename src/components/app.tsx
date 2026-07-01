@@ -324,4 +324,4 @@ const App = function () {
     </div>
   );
 };
-export default App;
+export default memo(App);
