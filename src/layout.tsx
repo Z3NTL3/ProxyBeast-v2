@@ -1,9 +1,6 @@
 import React, {
   memo,
-  useContext,
-  useEffect,
-  useReducer,
-  useState,
+  useContext
 } from "react";
 import { MdOutlineClose } from "react-icons/md";
 import { MdMinimize } from "react-icons/md";
@@ -24,10 +21,6 @@ const PLATFORM = platform();
 
 export const Layout = memo(() => {
   let screenData = useContext(ScreenContext);
-  const [, forceUpdate] = useReducer((v) => v + 1, 0);
-  useEffect(() => {
-    forceUpdate;
-  }, []);
   return (
     <TooltipProvider>
       <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">

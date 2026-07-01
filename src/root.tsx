@@ -1,9 +1,6 @@
 import ReactDOM from "react-dom/client";
-import App from "./components/app.tsx";
 import { BrowserRouter, Routes, Route } from "react-router";
 import Bootstrap from "./components/bootstrap.tsx";
-import Settings from "./components/settings.tsx";
-import Credits from "./components/credits.tsx";
 import { Layout } from "./layout.tsx";
 import { lazy, useEffect, useState } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
