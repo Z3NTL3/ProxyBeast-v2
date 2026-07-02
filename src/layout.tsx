@@ -13,6 +13,7 @@ import logo from "./assets/logo.png";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CiStickyNote } from "react-icons/ci";
 import { platform } from "@tauri-apps/plugin-os";
+import { PiGithubLogoLight } from "react-icons/pi";
 import useLoad from "./hooks/useLoad.ts";
 const PLATFORM = platform();
 
@@ -79,13 +80,13 @@ export const Layout = memo(() => {
           </div>
           {/*end*/}
 
-          <div
-            className={`${PLATFORM === "macos" ? "mt-95" : "mt-98"} flex w-full h-[0.2px] bg-white/20`}
-          ></div>
-          <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/60">
-            <CiStickyNote size={15} />
-            Humanly Engineered
-          </p>
+          <div className={`${PLATFORM === "macos" ? "mt-95" : "mt-100"}`}>
+            <div className="flex w-full h-[1px] bg-white/20 rounded-full"></div>
+            <p className="mt-3 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/90">
+              <CiStickyNote size={15} />
+              Humanly Engineered
+            </p>
+          </div>
         </motion.div>
         <main className="flex flex-col w-full h-full items-start">
           <motion.div

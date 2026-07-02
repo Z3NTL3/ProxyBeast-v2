@@ -64,7 +64,8 @@ body {
 
 @theme {
     --font-inter: "Inter", sans-serif;
-    --text-xs: 0.9rem;
+    --text-xs: 0.76rem;
+    --text-md: 0.93rem;
 }
 
 @theme inline {
@@ -117,7 +118,7 @@ body {
     --card-foreground: oklch(0.985 0 0);
     --popover: rgba(28, 28, 42, 1);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
+    --primary: #7abede;
     --primary-foreground: oklch(0.205 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
