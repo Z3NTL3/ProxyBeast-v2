@@ -5,6 +5,8 @@ import { PiGithubLogoDuotone } from "react-icons/pi";
 import { motion } from "motion/react";
 import { Avatar, AvatarBadge, AvatarImage } from "./ui/avatar";
 import { MdVerified } from "react-icons/md";
+import { GrGroup } from "react-icons/gr";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 export default function Credits() {
   let screen = useContext(ScreenContext);
@@ -26,7 +28,7 @@ export default function Credits() {
         These are the people behind ProxyBeast.
       </p>
 
-      <div className="grid grid-cols-2 justify-center mt-10 gap-x-8">
+      <div className="grid grid-cols-2 justify-center mt-10 gap-x-8 gap-y-10">
         <div className="flex flex-col p-5 bg-[#2A2A45] border border-white/15 min-h-50 h-fit rounded-md">
           <div className="flex items-start gap-x-5 h-fit w-fit">
             <Avatar size={"lg"} className="mt-5">
@@ -88,6 +90,22 @@ export default function Credits() {
                 <PiGithubLogoDuotone /> Github
               </motion.div>
             </div>
+          </div>
+        </div>
+
+        <div className="col-span-full justify-self-center  items-center w-160 flex flex-col p-5 bg-[#2A2A45] border border-white/15 min-h-50 h-fit rounded-md">
+          <GrGroup size={28} className="text-[#0A84FF]" />
+          <h2 className="font-semibold text-[20px]">Star us on Github</h2>
+          <p className="text-center text-white/60 text-md">
+            By starring our Github repository you would highly motivate our
+            maintainers and show your respect for their efforts.
+          </p>
+
+          <div
+            onClick={() => openUrl("https://github.com/Z3NTL3/ProxyBeast-v2")}
+            className="mt-2 font-semibold bg-[#0A84FF] px-16 py-1 rounded-md hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)] cursor-pointer"
+          >
+            Repository
           </div>
         </div>
       </div>

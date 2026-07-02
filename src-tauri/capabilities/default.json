@@ -2,10 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": [
-    "main",
-    "bootstrapper"
-  ],
+  "windows": ["main", "bootstrapper"],
   "permissions": [
     "opener:default",
     "core:default",
@@ -23,6 +20,14 @@
       ]
     },
     "os:default",
-    "process:default"
+    "process:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/z3ntl3/*"
+        }
+      ]
+    }
   ]
 }
