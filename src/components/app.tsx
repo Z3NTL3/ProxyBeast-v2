@@ -58,11 +58,13 @@ const App = function () {
     unlisten.push(activity);
 
     let bootAt = sessionStorage.getItem("boot");
-    if (bootAt !== null) setLogs((logs) => [...logs, JSON.parse(bootAt)]);
+    if (bootAt !== null && sessionStorage.getItem("bootSet") === null) {
+      setLogs((logs) => [...logs, JSON.parse(bootAt)]);
+      sessionStorage.setItem("bootSet", JSON.stringify(1));
+    }
 
     return () => {
       unlisten.forEach(async (v) => v.then((cleanup) => cleanup()));
-      sessionStorage.removeItem("boot");
     };
   }, []);
 
@@ -299,7 +301,7 @@ const App = function () {
 
         <div
           id="pane"
-          className="w-full h-20 overflow-y-scroll flex flex-col scrollbar-thumb-gray-800 resize-y  "
+          className="w-full h-20 overflow-y-scroll flex flex-col scrollbar-thumb-gray-800"
         >
           {logs.map((log, i) => (
             <div key={`logview-item-${i}`} className="flex">
