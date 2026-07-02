@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 interface AppSettings {
   poolSize: number;
@@ -22,6 +23,7 @@ export default function Settings() {
     poolSize: 1000,
     timeoutMS: 5000,
   });
+  let [poolSet, setPoolSet] = useState(false);
 
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
@@ -53,9 +55,21 @@ export default function Settings() {
     invoke("save_settings", {
       payload: settings,
     })
-      .then((_) =>
-        toast.success(restore ? "Restored to defaults" : "Saved new settings"),
-      )
+      .then((_) => {
+        if (poolSet) {
+          toast(
+            "Saved new settings must relaunch for new pool size to take effect",
+            {
+              action: {
+                label: "Relaunch",
+                onClick: async () => await relaunch(),
+              },
+            },
+          );
+          return;
+        }
+        toast.success(restore ? "Restored to defaults" : "Saved new settings");
+      })
       .catch((err) => {
         console.error(err);
         toast.error("Something went wrong while saving the new settings");
@@ -125,6 +139,7 @@ export default function Settings() {
               </div>
               <Slider
                 onValueChange={(v) => {
+                  setPoolSet(true);
                   setSettings((settings) => {
                     return { ...settings, poolSize: v as number };
                   });
