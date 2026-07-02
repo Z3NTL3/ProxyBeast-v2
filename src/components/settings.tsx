@@ -146,6 +146,7 @@ export default function Settings() {
                 }}
                 className="mt-2"
                 value={[settings.poolSize]}
+                min={1000}
                 max={10_000}
                 step={10}
               />
