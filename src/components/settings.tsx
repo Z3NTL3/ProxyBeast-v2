@@ -89,7 +89,7 @@ export default function Settings() {
   return (
     <div className="flex flex-col p-5 mx-8 mt-10">
       <h1 className="text-2xl">Settings</h1>
-      <p className="text-xs text-gray-400">
+      <p className="text-md text-gray-400">
         Configure your applications settings.
       </p>
 

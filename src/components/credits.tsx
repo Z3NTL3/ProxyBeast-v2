@@ -22,7 +22,7 @@ export default function Credits() {
   return (
     <div className="flex flex-col p-5 mx-8 mt-10">
       <h1 className="text-2xl">Contributors</h1>
-      <p className="text-xs text-gray-400">
+      <p className="text-md text-gray-400">
         These are the people behind ProxyBeast.
       </p>
 
