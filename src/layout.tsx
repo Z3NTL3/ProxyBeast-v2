@@ -13,7 +13,6 @@ import logo from "./assets/logo.png";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CiStickyNote } from "react-icons/ci";
 import { platform } from "@tauri-apps/plugin-os";
-import { PiGithubLogoLight } from "react-icons/pi";
 import useLoad from "./hooks/useLoad.ts";
 const PLATFORM = platform();
 
