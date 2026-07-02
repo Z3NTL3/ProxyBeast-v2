@@ -11,12 +11,13 @@ import { Toaster } from "@/components/ui/sonner";
 import "./App.css";
 import logo from "./assets/logo.png";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { PiLightningDuotone } from "react-icons/pi";
+import { CiStickyNote } from "react-icons/ci";
 import { platform } from "@tauri-apps/plugin-os";
-
+import useLoad from "./hooks/useLoad.ts";
 const PLATFORM = platform();
 
 export const Layout = memo(() => {
+  useLoad();
   let screenData = useContext(ScreenContext);
   return (
     <TooltipProvider>
@@ -82,7 +83,7 @@ export const Layout = memo(() => {
             className={`${PLATFORM === "macos" ? "mt-95" : "mt-98"} flex w-full h-[0.2px] bg-white/20`}
           ></div>
           <p className="mt-5 flex items-center justify-center gap-x-1 text-center text-[12px] text-white/60">
-            <PiLightningDuotone size={15} />
+            <CiStickyNote size={15} />
             Humanly Engineered
           </p>
         </motion.div>

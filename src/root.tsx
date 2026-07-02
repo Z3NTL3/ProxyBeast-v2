@@ -4,7 +4,6 @@ import Bootstrap from "./components/bootstrap.tsx";
 import { Layout } from "./layout.tsx";
 import React, { lazy, useEffect, useState } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import useLoad from "./hooks/useLoad.ts";
 import { ScreenContext, ScreenData } from "./screen.context.ts";
 import "./App.css";
 
@@ -13,7 +12,6 @@ const SettingsScreen = lazy(() => import("./components/settings.tsx"));
 const CreditsScreen = lazy(() => import("./components/credits.tsx"));
 
 const Root = () => {
-  useLoad();
   let [screenData, setScreenData] = useState<ScreenData>({
     version: "1.0.0",
     current: "Overview",
@@ -46,7 +44,7 @@ const Root = () => {
         }}
       >
         <Routes>
-          <Route loader={() => useLoad()} path="/" element={<Layout />}>
+          <Route path="/" element={<Layout />}>
             <Route index element={<OverviewScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />
             <Route path="/credits" element={<CreditsScreen />} />
