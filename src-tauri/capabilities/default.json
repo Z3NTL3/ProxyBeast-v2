@@ -26,6 +26,9 @@
       "allow": [
         {
           "url": "https://github.com/z3ntl3/*"
+        },
+        {
+          "url": "https://x.com/terzicdsgn"
         }
       ]
     }
