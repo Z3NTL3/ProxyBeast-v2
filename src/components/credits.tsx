@@ -47,8 +47,8 @@ export default function Credits() {
               </div>
               <p className="text-white/60 font-light text-md">
                 A passionate allround software engineer with deep passion for
-                open-source development. He is the mastermind behind complete
-                ProxyBeast ecosystem.
+                computer science. Admires the art of reading. He is the
+                mastermind behind the complete ProxyBeast ecosystem.
               </p>
 
               <motion.div
