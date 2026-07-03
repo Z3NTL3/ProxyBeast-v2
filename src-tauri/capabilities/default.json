@@ -15,7 +15,10 @@
       "identifier": "opener:allow-open-path",
       "allow": [
         {
-          "path": "$APPCACHE/saves/*"
+          "path": "$APPCACHE/saves/**"
+        },
+        {
+          "path": "$APPLOG"
         }
       ]
     },
@@ -25,12 +28,17 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         {
-          "url": "https://github.com/z3ntl3/*"
+          "url": "https://github.com/z3ntl3/**"
         },
         {
           "url": "https://x.com/terzicdsgn"
         }
       ]
+    },
+    "fs:default",
+    {
+      "identifier": "fs:scope-appcache-recursive",
+      "allow": [{ "path": "$APPLOG/**" }]
     }
   ]
 }

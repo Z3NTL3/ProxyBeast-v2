@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
@@ -38,3 +38,5 @@ anyhow = "1.0.102"
 async-channel = "2.5.0"
 tauri-plugin-os = "2"
 tauri-plugin-process = "2"
+tracing-appender = "0.2"
+tauri-plugin-fs = "2"

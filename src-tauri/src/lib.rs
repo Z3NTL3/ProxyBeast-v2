@@ -95,6 +95,7 @@ impl Visit for MessageVisitor {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
@@ -107,8 +108,16 @@ pub fn run() {
             commands::save_settings
         ])
         .setup(|app| {
+            let file_appender =
+                tracing_appender::rolling::daily(app.path().app_log_dir()?, "diagnostics.log");
             let subscriber = Registry::default()
-                .with(fmt::layer().with_line_number(true).pretty().with_ansi(true))
+                .with(
+                    fmt::layer()
+                        .with_line_number(true)
+                        .pretty()
+                        .with_ansi(true)
+                        .with_writer(file_appender),
+                )
                 .with(LiveLogs.with_filter(filter_fn(|metadata| {
                     if metadata.target() == LIVE_LOGS {
                         true

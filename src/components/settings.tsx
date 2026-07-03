@@ -11,7 +11,11 @@ import { motion } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { CiFileOn } from "react-icons/ci";
+import { openPath } from "@tauri-apps/plugin-opener";
+import * as path from "@tauri-apps/api/path";
 
+const APPLOG_DIR = await path.appLogDir();
 interface AppSettings {
   poolSize: number;
   timeoutMS: number;
@@ -150,6 +154,24 @@ export default function Settings() {
                 max={10_000}
                 step={10}
               />
+            </div>
+          </div>
+          {/* end */}
+
+          {/* sub item */}
+          <div className="flex mt-5">
+            <div className="flex flex-col">
+              <h3 className="text-[14px] text-gray-300">Diagnostics</h3>
+              <p className="text-[12px] text-gray-400">Application log file.</p>
+            </div>
+            <div className="flex grow  justify-end items-center">
+              <motion.div
+                onClick={() => openPath(APPLOG_DIR)}
+                whileHover={{ borderWidth: 1, borderColor: "white" }}
+                className="flex items-center gap-x-1 border border-white/60 text-xs cursor-pointer rounded-md px-5 py-1 hover:cursor-pointer"
+              >
+                <CiFileOn /> View
+              </motion.div>
             </div>
           </div>
           {/* end */}
