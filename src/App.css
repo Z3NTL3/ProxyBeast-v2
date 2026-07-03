@@ -31,6 +31,7 @@ body {
 @custom-variant dark (&:is(.dark *));
 
 :root {
+    user-select: none;
     color: white;
     background-color: #1e1e2e;
     font-family: "Hanken Grotesk", sans-serif;

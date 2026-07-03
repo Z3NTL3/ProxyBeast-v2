@@ -21,7 +21,8 @@
         "decorations": false,
         "center": true,
         "backgroundColor": "#1E1E2E",
-        "backgroundThrottling": "throttle"
+        "backgroundThrottling": "throttle",
+        "dragDropEnabled": false
       }
     ],
     "security": {

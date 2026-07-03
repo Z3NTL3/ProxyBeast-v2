@@ -23,6 +23,7 @@ export const Layout = memo(() => {
     <TooltipProvider>
       <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
         <motion.div
+          data-tauri-drag-region
           initial={{
             opacity: 0,
           }}
@@ -51,6 +52,7 @@ export const Layout = memo(() => {
             {SCREENS.map((screen_, i) => (
               <React.Fragment key={`screen-${i}`}>
                 <a
+                  tabIndex={-1}
                   key={`screen-${i}`}
                   href={screen_.href}
                   onClick={async () => {
@@ -89,16 +91,17 @@ export const Layout = memo(() => {
         </motion.div>
         <main className="flex flex-col w-full h-full items-start">
           <motion.div
+            data-tauri-drag-region
             layout
             initial={{
               opacity: 0,
             }}
             whileInView={{ opacity: 1 }}
-            data-tauri-drag-region
             className="flex bg-[#2A2A45] w-full h-10 p-3 font-inter text-[13px] text-white/80 border-b border-[#808080]/40"
           >
             {screenData.current}
             <div
+              data-tauri-drag-region
               className={`${PLATFORM === "macos" ? "hidden" : "flex grow items-center justify-end gap-x-1"}`}
             >
               <MdMinimize
