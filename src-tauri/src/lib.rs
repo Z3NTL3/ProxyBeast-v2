@@ -110,13 +110,15 @@ pub fn run() {
         .setup(|app| {
             let file_appender =
                 tracing_appender::rolling::daily(app.path().app_log_dir()?, "diagnostics.log");
+            let (non_blocking_appender, _guard) = tracing_appender::non_blocking(file_appender);
+
             let subscriber = Registry::default()
                 .with(
                     fmt::layer()
                         .with_line_number(true)
                         .pretty()
                         .with_ansi(true)
-                        .with_writer(file_appender),
+                        .with_writer(non_blocking_appender),
                 )
                 .with(LiveLogs.with_filter(filter_fn(|metadata| {
                     if metadata.target() == LIVE_LOGS {
