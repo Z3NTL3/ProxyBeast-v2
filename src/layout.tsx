@@ -33,7 +33,7 @@ export const Layout = memo(() => {
           {/*logo*/}
           <div
             data-tauri-drag-region
-            className={`${PLATFORM === "macos" ? "mt-0" : null} flex items-center`}
+            className={`${PLATFORM === "macos" ? "mt-2" : null} flex items-center`}
           >
             <img width={40} src={logo} />
             <h2 className="text-[24px] font-bold">ProxyBeast</h2>
