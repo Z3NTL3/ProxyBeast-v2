@@ -40,3 +40,6 @@ ProxyBeast is a powerful, complete and free proxy checker with advanced capabili
 
 
 - ProxyBeast has it's own proxy client library implementation. It's based on ``CONNECT`` methods and allows for proxy relay to a destination target. Read more about it [here](https://github.com/z3ntl3/proxifier-rs)
+
+
+- ProxyBeast preserves all application diagnostics, which roll daily to make it easier to identify problems. You can access those logs by pressing on the Diagnostics pane via the Settings application screen. We plan on making a bug tracker so we can patch bugs quicker, whereby you would attach the log file.
