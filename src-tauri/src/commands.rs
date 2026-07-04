@@ -59,6 +59,12 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
     if state.proxy_checker.workers_state.load(SeqCst) {
         state.proxy_checker.signal.read().await.cancel();
     }
+    let recv = state.proxy_checker.pipe.1.clone();
+    while !recv.is_empty() {
+        recv.recv().await;
+    }
+
+    state.proxy_checker.fd_state.store(false, SeqCst);
     Ok(())
 }
 

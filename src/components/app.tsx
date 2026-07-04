@@ -11,6 +11,8 @@ import moment from "moment";
 import "../App.css";
 import { toast } from "sonner";
 import { ScreenContext } from "@/screen.context";
+import { Badge } from "./ui/badge";
+import { RxFile } from "react-icons/rx";
 
 const App = function () {
   let [logs, setLogs] = useState<
@@ -26,6 +28,7 @@ const App = function () {
   let [load_pane, setLoad] = useState(0);
   // @ts-ignore
   let [proxies, setProxies] = useState<string[]>([]);
+  let filePath = useRef("");
 
   let screen = useContext(ScreenContext);
   useEffect(() => {
@@ -191,6 +194,7 @@ const App = function () {
                 invoke("read_file", { path })
                   .then((v) => {
                     setLoad(v as number);
+                    filePath.current = path;
                     toast.info("Selected proxy file");
                   })
                   .catch((err) => {
@@ -209,6 +213,18 @@ const App = function () {
           <p className="text-[13px] text-white/50">
             Press inside to select your proxy list file
           </p>
+          {filePath.current !== "" ? (
+            <motion.div
+              whileInView={{
+                opacity: [0, 1],
+              }}
+            >
+              <Badge className="mt-5 bg-transparent text-white/40 border-white/10 px-5 h-fit py-1">
+                <RxFile size={20} className="text-white" /> Selected:{" "}
+                {filePath.current}
+              </Badge>
+            </motion.div>
+          ) : null}
         </div>
 
         <div className="flex flex-col">
