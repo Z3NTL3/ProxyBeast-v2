@@ -11,7 +11,7 @@
         "visible": false,
         "maximizable": false,
         "resizable": false,
-        "decorations": false,
+        "decorations": true,
         "center": true,
         "backgroundColor": "#1E1E2E",
         "backgroundThrottling": "throttle",
