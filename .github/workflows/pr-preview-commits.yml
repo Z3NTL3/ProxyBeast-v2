@@ -1,0 +1,31 @@
+name: Auto fill preview commits
+run-name: Auto fill PR body with commits by ${{ github.actor }}
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-fill-pr-body-with-commits:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update PR Body with Commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          COMMITS=$(git log --oneline )
+          gh pr comment ${{ github.event.pull_request.id }} -b ' \
+            $COMMITS \
+          '
