@@ -18,14 +18,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch oneline commits
+      - name: Fill PR body
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.number }}
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number
         run: |
-          echo "COMMITS=$(git log --oneline)" >> "$GITHUB_ENV"
-      - name: Place oneline commits in PR Body
-        run: |
-          gh pr comment ${{ github.event.pull_request.number }} -b $COMMITS
+          gh pr comment $PR_NUMBER -b $(git log --oneline)
