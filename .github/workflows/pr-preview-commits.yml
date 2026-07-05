@@ -25,4 +25,5 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} -b '${{ git log --oneline }}'
+          echo COMMITS=git log --oneline
+          gh pr comment ${{ github.event.pull_request.number }} -b '$(git log --oneline)'
