@@ -3,7 +3,7 @@ run-name: Auto fill PR body with commits by ${{ github.actor }}
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, reopened]
 
 jobs:
   auto-fill-pr-body-with-commits:
