@@ -26,6 +26,6 @@ jobs:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           COMMITS=$(git log --oneline )
-          gh pr comment ${{ github.event.pull_request.id }} -b ' \
+          gh pr comment ${{ github.event.pull_request.number }} -b ' \
             $COMMITS \
           '
