@@ -23,4 +23,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr comment $PR_NUMBER -b '$(git log --oneline)'
+          echo $(git log --oneline) >> commits.txt
+          gh pr comment $PR_NUMBER -f ./commits.txt
