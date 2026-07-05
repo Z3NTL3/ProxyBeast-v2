@@ -25,7 +25,7 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          echo "COMMITS=git log --oneline" >> "$GITHUB_ENV"
+          echo "COMMITS=$(git log --oneline)" >> "$GITHUB_ENV"
       - name: Place oneline commits in PR Body
         run: |
           gh pr comment ${{ github.event.pull_request.number }} -b $COMMITS
