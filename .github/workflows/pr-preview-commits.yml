@@ -24,4 +24,4 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo $(git log --oneline) >> commits.txt
-          gh pr comment $PR_NUMBER -f ./commits.txt
+          gh pr comment $PR_NUMBER -F ./commits.txt
