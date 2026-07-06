@@ -22,8 +22,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          BASE: ${{ github.event.pull_request.base.ref }}
           HEAD: ${{ github.event.pull_request.head.ref }}
         run: |
-          echo $(git log --format='- %h%n' $BASE..$HEAD) >> commits.txt
+          echo $(git log --format='- %h%n' origin..$HEAD) >> commits.txt
           gh pr comment $PR_NUMBER -F ./commits.txt
