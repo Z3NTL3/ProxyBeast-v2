@@ -134,6 +134,7 @@ pub fn run() {
             let mut app_config: models::AppConfig = AppConfig {
                 timeout: Duration::from_millis(5000),
                 pool_size: 1000,
+                judge: "google.com".into(),
             };
 
             match fs::exists(config_file.clone()) {

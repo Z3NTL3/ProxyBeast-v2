@@ -10,4 +10,5 @@ pub struct AppConfig {
     #[serde(rename(serialize = "timeoutMS", deserialize = "timeoutMS"))]
     #[serde_as(as = "DurationMilliSeconds<u64>")]
     pub timeout: Duration,
+    pub judge: String,
 }

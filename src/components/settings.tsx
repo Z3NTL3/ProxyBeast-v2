@@ -14,18 +14,42 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { CiFileOn } from "react-icons/ci";
 import { openPath } from "@tauri-apps/plugin-opener";
 import * as path from "@tauri-apps/api/path";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 const APPLOG_DIR = await path.appLogDir();
 interface AppSettings {
   poolSize: number;
   timeoutMS: number;
+  judge: String;
 }
 
+const JUDGES: Array<{ label: string; value: string }> = [
+  {
+    label: "Google",
+    value: "google.com",
+  },
+  {
+    label: "Cloudflare",
+    value: "one.one.one.one",
+  },
+  {
+    label: "ProxySpace",
+    value: "proxyspace.pro",
+  },
+];
 export default function Settings() {
   let screen = useContext(ScreenContext);
   let [settings, setSettings] = useState<AppSettings>({
     poolSize: 1000,
     timeoutMS: 5000,
+    judge: "google.com",
   });
   let [poolSet, setPoolSet] = useState(false);
 
@@ -85,6 +109,7 @@ export default function Settings() {
       return {
         poolSize: 1000,
         timeoutMS: 5000,
+        judge: "google.com",
       };
     });
     saveSettings(true);
@@ -98,7 +123,7 @@ export default function Settings() {
       </p>
 
       {/* settings pane */}
-      <div className="grid grid-cols-2 gap-x-10 items-start justify-center mt-14">
+      <div className="grid grid-cols-2 gap-x-10 items-start justify-center mt-8">
         {/* pane item */}
         <div className="flex flex-col bg-[#2A2A45] w-[350px] h-fit rounded-md p-4 border border-white/20">
           <div className="flex items-center gap-x-1 mb-2">
@@ -216,13 +241,53 @@ export default function Settings() {
           />
           <p className="mt-5 text-gray-400 text-[12px]">
             Our proxy checker uses <URI_Tooltip /> schemes to detect multi
-            protocol proxies. Your file must contain proxies in <URI_Tooltip />{" "}
-            format.
+            protocol proxies. We will add options to force select a scheme soon.
           </p>
-          <span className="underline mt-4 text-gray-400 text-[12px]">
-            We will add an option to force select a protocol scheme for proxy
-            lists without proper URI format.
-          </span>
+
+          {/* sub item */}
+          <div className="flex flex-col mt-5">
+            <div className="flex flex-col mb-2">
+              <h3 className="text-[14px] text-gray-300">Judge</h3>
+              <p className="text-[12px] text-gray-400">Relay destination.</p>
+            </div>
+
+            <Select
+              items={JUDGES}
+              onValueChange={(v, _) => {
+                if (v === null || typeof v === "undefined") return;
+
+                setSettings((settings) => {
+                  return {
+                    ...settings,
+                    judge: v as string,
+                  };
+                });
+              }}
+              multiple={false}
+            >
+              <SelectTrigger
+                value={settings.judge as string}
+                className="w-[180px]"
+              >
+                <SelectValue placeholder={settings.judge} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {JUDGES.map((v, i) => (
+                    <SelectItem
+                      key={`select-item-${i}`}
+                      disabled={settings.judge === v.value ? true : false}
+                      value={v.value}
+                    >
+                      {v.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          {/* end */}
+
           {/* end */}
         </div>
         {/* end */}

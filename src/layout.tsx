@@ -89,7 +89,7 @@ export const Layout = memo(() => {
             </p>
           </div>
         </motion.div>
-        <main className="flex flex-col w-full h-full items-start">
+        <main className="flex flex-col w-full h-full items-start overflow-y-scroll">
           <motion.div
             data-tauri-drag-region
             layout

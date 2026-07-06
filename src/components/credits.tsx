@@ -2,7 +2,7 @@ import { useContext, useEffect } from "react";
 import { ScreenContext } from "../screen.context";
 import { Badge } from "./ui/badge";
 import { PiGithubLogoDuotone } from "react-icons/pi";
-import { motion } from "motion/react";
+import { motion, stagger } from "motion/react";
 import { Avatar, AvatarBadge, AvatarImage } from "./ui/avatar";
 import { MdVerified } from "react-icons/md";
 import { GrGroup } from "react-icons/gr";
@@ -10,9 +10,11 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import z3ntl3Pfp from "@/assets/img/z3ntl3.png";
 import filipPfp from "@/assets/img/filip.png";
 import { FaSquareXTwitter } from "react-icons/fa6";
+import { FaArrowDown } from "react-icons/fa6";
 
 export default function Credits() {
   let screen = useContext(ScreenContext);
+
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
       screen.setData((screen_) => {
@@ -99,7 +101,45 @@ export default function Credits() {
           </div>
         </div>
 
-        <div className="col-span-full justify-self-center  items-center w-160 flex flex-col p-5 bg-[#2A2A45] border border-white/15 min-h-50 h-fit rounded-md">
+        <div className="flex flex-col p-5 bg-[#2A2A45] border border-white/15 min-h-fit h-fit rounded-md">
+          <div className="flex items-start gap-x-5 h-fit w-fit">
+            <Avatar size={"lg"} className="mt-5">
+              <AvatarImage
+                src={filipPfp}
+                className="grayscale"
+                alt="@terzicdsgn"
+              />
+              <AvatarBadge>
+                <MdVerified />
+              </AvatarBadge>
+            </Avatar>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-x-2 mt-3">
+                <h2 className="font-semibold text-xl">Wizzie</h2>
+                <Badge className="text-xs">MacOS tester</Badge>
+              </div>
+              <p className="text-white/60 font-light text-md">
+                Made it possible for ProxyBeast to reach a stable MacOS release
+                by providing extensive feedback and QA observation.
+              </p>
+
+              <motion.div
+                onClick={() => openUrl("https://x.com/terzicdsgn")}
+                whileHover={{
+                  scaleX: 1.04,
+                }}
+                className="mt-3 bg-[#2A2A3D] items-center gap-x-2 text-[14px] w-fit px-10 text-left flex justify-start py-1 rounded-lg border border-white/15 cursor-pointer"
+              >
+                <FaSquareXTwitter /> Twitter
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="repo-view"
+          className="col-span-full justify-self-center mt-1 items-center w-160 flex flex-col p-5 bg-[#2A2A45] border border-white/15 min-h-50 h-fit rounded-md"
+        >
           <GrGroup size={28} className="text-[#0A84FF]" />
           <h2 className="font-semibold text-[20px]">Star us on Github</h2>
           <p className="text-center text-white/60 text-md">
@@ -115,6 +155,23 @@ export default function Credits() {
           </div>
         </div>
       </div>
+
+      <motion.div
+        onClick={() => document.getElementById("repo-view")?.scrollIntoView()}
+        layout
+        transition={{
+          repeat: Infinity,
+          duration: 1.4,
+          ease: "circInOut",
+          delayChildren: stagger(0.3),
+        }}
+        animate={{
+          translateY: [0, 10, 0],
+        }}
+        className="absolute right-5 bottom-5 bg-primary text-black/60 p-2 rounded-full shadow-md shadow-primary/30"
+      >
+        <FaArrowDown />
+      </motion.div>
     </div>
   );
 }
