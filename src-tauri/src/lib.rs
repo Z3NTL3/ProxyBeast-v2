@@ -116,6 +116,7 @@ pub fn run() {
             let subscriber = Registry::default()
                 .with(
                     fmt::Layer::default()
+                        // $APPLOG file
                         .with_writer(non_blocking_appender)
                         .with_line_number(true)
                         .pretty()
