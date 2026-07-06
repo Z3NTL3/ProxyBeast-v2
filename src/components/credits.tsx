@@ -120,7 +120,7 @@ export default function Credits() {
               </div>
               <p className="text-white/60 font-light text-md">
                 Made it possible for ProxyBeast to reach a stable MacOS release
-                by providing extensive feedback and QA observation.
+                by providing extensive feedback and QA resolution.
               </p>
 
               <motion.div
