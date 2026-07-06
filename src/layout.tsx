@@ -89,7 +89,9 @@ export const Layout = memo(() => {
             </p>
           </div>
         </motion.div>
-        <main className="flex flex-col w-full h-full items-start overflow-y-scroll">
+        <main
+          className={`flex flex-col w-full h-full items-start ${screenData.current === "Credits" ? "overflow-y-scroll" : null}`}
+        >
           <motion.div
             data-tauri-drag-region
             layout
