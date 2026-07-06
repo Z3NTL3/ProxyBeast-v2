@@ -136,7 +136,8 @@ pub fn run() {
                         false
                     }
                 })));
-            tracing::subscriber::set_global_default(subscriber).unwrap();
+            tracing::subscriber::set_global_default(subscriber)
+                .expect("failed setting default subscriber");
 
             let _ = std::fs::create_dir(app.path().app_config_dir()?);
             let config_file = app.path().app_config_dir()?.join("config.json");
