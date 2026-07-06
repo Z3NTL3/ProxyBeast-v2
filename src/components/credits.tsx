@@ -43,12 +43,12 @@ export default function Credits() {
             <div className="flex flex-col">
               <div className="flex items-center gap-x-2 mt-3">
                 <h2 className="font-semibold text-xl">Efdal Sancak</h2>
-                <Badge className="text-xs">Lead Maintainer</Badge>
+                <Badge className="text-xs">Core Developer</Badge>
               </div>
               <p className="text-white/60 font-light text-md">
                 A passionate allround software engineer with deep passion for
-                computer science. Admires the art of reading. He is the
-                mastermind behind the complete ProxyBeast ecosystem.
+                computer science. Admires the art of reading. Realised and built
+                all parts of ProxyBeast.
               </p>
 
               <motion.div
@@ -82,8 +82,8 @@ export default function Credits() {
               </div>
               <p className="text-white/60 font-light text-md">
                 Talented UI/UX youngster. Focused on elevating creative designs
-                to higher levels of profound designs. Contributed to the GUI and
-                our product landing website.
+                to higher levels of profound designs. Contributed Figma
+                prototypes for ProxyBeast.
               </p>
 
               <motion.div
