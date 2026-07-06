@@ -9,7 +9,7 @@ import { GrGroup } from "react-icons/gr";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import z3ntl3Pfp from "@/assets/img/z3ntl3.png";
 import filipPfp from "@/assets/img/filip.png";
-import { FaSquareXTwitter } from "react-icons/fa6";
+import { FaGithub, FaSquareXTwitter } from "react-icons/fa6";
 import { FaArrowDown } from "react-icons/fa6";
 
 export default function Credits() {
@@ -27,7 +27,7 @@ export default function Credits() {
   }, [screen.current !== "Credits"]);
 
   return (
-    <div className="flex flex-col p-5 mx-8 mt-10">
+    <div className="flex flex-col p-5 mx-8 mt-10  ">
       <h1 className="text-2xl">Contributors</h1>
       <p className="text-md text-gray-400">
         These are the people behind ProxyBeast.
@@ -135,29 +135,10 @@ export default function Credits() {
             </div>
           </div>
         </div>
-
-        <div
-          id="repo-view"
-          className="col-span-full justify-self-center mt-1 items-center w-160 flex flex-col p-5 bg-[#2A2A45] border border-white/15 min-h-50 h-fit rounded-md"
-        >
-          <GrGroup size={28} className="text-[#0A84FF]" />
-          <h2 className="font-semibold text-[20px]">Star us on Github</h2>
-          <p className="text-center text-white/60 text-md">
-            By starring our Github repository you would highly motivate our
-            maintainers and show your respect for their efforts.
-          </p>
-
-          <div
-            onClick={() => openUrl("https://github.com/Z3NTL3/ProxyBeast-v2")}
-            className="mt-2 font-semibold bg-[#0A84FF] px-16 py-1 rounded-md hover:shadow-[1px_1px_30px_0.1px_rgba(53,120,236,0.4)] cursor-pointer"
-          >
-            Repository
-          </div>
-        </div>
       </div>
 
       <motion.div
-        onClick={() => document.getElementById("repo-view")?.scrollIntoView()}
+        onClick={() => openUrl("https://github.com/z3ntl3/ProxyBeast-v2")}
         layout
         transition={{
           repeat: Infinity,
@@ -168,9 +149,9 @@ export default function Credits() {
         animate={{
           translateY: [0, 10, 0],
         }}
-        className="absolute right-5 bottom-5 bg-primary text-black/60 p-2 rounded-full shadow-md shadow-primary/30"
+        className="absolute cursor-pointer right-5 bottom-5 bg-primary text-black/90 p-2 rounded-full shadow-md shadow-primary/30"
       >
-        <FaArrowDown />
+        <FaGithub />
       </motion.div>
     </div>
   );

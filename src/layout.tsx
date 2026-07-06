@@ -23,7 +23,6 @@ export const Layout = memo(() => {
     <TooltipProvider>
       <div className="flex w-screen h-screen bg-[#1E1E2E] overflow-hidden">
         <motion.div
-          data-tauri-drag-region
           initial={{
             opacity: 0,
           }}
@@ -71,7 +70,7 @@ export const Layout = memo(() => {
                       {screen_.node}
                     </motion.div>
                   ) : (
-                    <div className="hover:text-white/60 text-white/40 cursor-pointer flex items-center gap-x-2 px-2 py-1.5 rounded-lg font-inter text-[13px] text-left">
+                    <div className="hover:text-white/60 text-white/40 flex items-center gap-x-2 px-2 py-1.5 cursor-pointer rounded-lg font-inter text-[13px] text-left">
                       {screen_.node}
                     </div>
                   )}
@@ -89,9 +88,7 @@ export const Layout = memo(() => {
             </p>
           </div>
         </motion.div>
-        <main
-          className={`flex flex-col w-full h-full items-start ${screenData.current === "Credits" ? "overflow-y-scroll" : null}`}
-        >
+        <main className={`flex flex-col w-full h-full items-start`}>
           <motion.div
             data-tauri-drag-region
             layout
