@@ -2,6 +2,7 @@ use async_channel::{Receiver, Sender, bounded};
 use chrono::Local;
 use proxifier_rs::{ClientConfig, RootCertStore};
 use std::fs;
+use std::io::stdout;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -114,11 +115,18 @@ pub fn run() {
 
             let subscriber = Registry::default()
                 .with(
-                    fmt::layer()
+                    fmt::Layer::default()
+                        .with_writer(non_blocking_appender)
                         .with_line_number(true)
                         .pretty()
-                        .with_ansi(true)
-                        .with_writer(non_blocking_appender),
+                        .with_ansi(true),
+                )
+                .with(
+                    fmt::Layer::default()
+                        .with_writer(stdout)
+                        .with_line_number(true)
+                        .pretty()
+                        .with_ansi(true),
                 )
                 .with(LiveLogs.with_filter(filter_fn(|metadata| {
                     if metadata.target() == LIVE_LOGS {

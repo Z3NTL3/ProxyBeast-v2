@@ -7,8 +7,15 @@ use std::time::Duration;
 pub struct AppConfig {
     #[serde(rename(serialize = "poolSize", deserialize = "poolSize"))]
     pub pool_size: u64,
-    #[serde(rename(serialize = "timeoutMS", deserialize = "timeoutMS"))]
+
     #[serde_as(as = "DurationMilliSeconds<u64>")]
+    #[serde(rename(serialize = "timeoutMS", deserialize = "timeoutMS"))]
     pub timeout: Duration,
+
+    #[serde(default = "default_judge")]
     pub judge: String,
+}
+
+fn default_judge() -> String {
+    "google.com".into()
 }
