@@ -8,7 +8,7 @@ import { MdVerified } from "react-icons/md";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import z3ntl3Pfp from "@/assets/img/z3ntl3.png";
 import filipPfp from "@/assets/img/filip.png";
-import { FaGithub, FaSquareXTwitter } from "react-icons/fa6";
+import { FaGithub, FaLinkedinIn, FaSquareXTwitter } from "react-icons/fa6";
 
 export default function Credits() {
   let screen = useContext(ScreenContext);
@@ -42,7 +42,7 @@ export default function Credits() {
             </Avatar>
             <div className="flex flex-col">
               <div className="flex items-center gap-x-2 mt-3">
-                <h2 className="font-semibold text-xl">z3ntl3</h2>
+                <h2 className="font-semibold text-xl">Efdal Sancak</h2>
                 <Badge className="text-xs">Lead Maintainer</Badge>
               </div>
               <p className="text-white/60 font-light text-md">
@@ -77,7 +77,7 @@ export default function Credits() {
             </Avatar>
             <div className="flex flex-col">
               <div className="flex items-center gap-x-2 mt-3">
-                <h2 className="font-semibold text-xl">terzicdsgn</h2>
+                <h2 className="font-semibold text-xl">Filip Terzic</h2>
                 <Badge className="text-xs">Lead Designer</Badge>
               </div>
               <p className="text-white/60 font-light text-md">
@@ -113,7 +113,7 @@ export default function Credits() {
             </Avatar>
             <div className="flex flex-col">
               <div className="flex items-center gap-x-2 mt-3">
-                <h2 className="font-semibold text-xl">Wizzie</h2>
+                <h2 className="font-semibold text-xl">Wisdom Moore</h2>
                 <Badge className="text-xs">MacOS tester</Badge>
               </div>
               <p className="text-white/60 font-light text-md">
@@ -122,13 +122,15 @@ export default function Credits() {
               </p>
 
               <motion.div
-                onClick={() => openUrl("https://x.com/terzicdsgn")}
+                onClick={() =>
+                  openUrl("https://www.linkedin.com/in/wisdom-moore-a2741126b")
+                }
                 whileHover={{
                   scaleX: 1.04,
                 }}
                 className="mt-3 bg-[#2A2A3D] items-center gap-x-2 text-[14px] w-fit px-10 text-left flex justify-start py-1 rounded-lg border border-white/15 cursor-pointer"
               >
-                <FaSquareXTwitter /> Twitter
+                <FaLinkedinIn />
               </motion.div>
             </div>
           </div>
