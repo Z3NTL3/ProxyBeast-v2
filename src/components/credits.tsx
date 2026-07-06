@@ -5,12 +5,10 @@ import { PiGithubLogoDuotone } from "react-icons/pi";
 import { motion, stagger } from "motion/react";
 import { Avatar, AvatarBadge, AvatarImage } from "./ui/avatar";
 import { MdVerified } from "react-icons/md";
-import { GrGroup } from "react-icons/gr";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import z3ntl3Pfp from "@/assets/img/z3ntl3.png";
 import filipPfp from "@/assets/img/filip.png";
 import { FaGithub, FaSquareXTwitter } from "react-icons/fa6";
-import { FaArrowDown } from "react-icons/fa6";
 
 export default function Credits() {
   let screen = useContext(ScreenContext);
