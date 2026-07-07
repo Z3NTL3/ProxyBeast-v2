@@ -12,4 +12,4 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features
+        run: cd ./src-tauri && cargo clippy --all-targets --all-features
