@@ -14,7 +14,7 @@ use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{Layer, Registry, fmt};
 
-static LIVE_LOGS: &'static str = "live-logs";
+static LIVE_LOGS: &str = "live-logs";
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
 struct AppState {
@@ -37,9 +37,9 @@ use crate::models::AppConfig;
 pub(crate) mod commands;
 pub(crate) mod models;
 pub(crate) mod events {
-    pub const WINDOW_LOADED: &'static str = "window_loaded";
-    pub const WINDOW_LOAD_PROGRESS: &'static str = "load_progress";
-    pub const APP_VERSION: &'static str = "app_version";
+    pub const WINDOW_LOADED: &str = "window_loaded";
+    pub const WINDOW_LOAD_PROGRESS: &str = "load_progress";
+    pub const APP_VERSION: &str = "app_version";
 }
 
 struct LiveLogs;
@@ -58,11 +58,7 @@ impl<S: Subscriber> Layer<S> for LiveLogs {
         _event: &tracing::Event<'_>,
         _ctx: tracing_subscriber::layer::Context<'_, S>,
     ) -> bool {
-        if _event.metadata().target() == LIVE_LOGS {
-            true
-        } else {
-            false
-        }
+        _event.metadata().target() == LIVE_LOGS
     }
 
     fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
@@ -129,13 +125,7 @@ pub fn run() {
                         .pretty()
                         .with_ansi(true),
                 )
-                .with(LiveLogs.with_filter(filter_fn(|metadata| {
-                    if metadata.target() == LIVE_LOGS {
-                        true
-                    } else {
-                        false
-                    }
-                })));
+                .with(LiveLogs.with_filter(filter_fn(|metadata| metadata.target() == LIVE_LOGS)));
             tracing::subscriber::set_global_default(subscriber)
                 .expect("failed setting default subscriber");
 
@@ -202,7 +192,7 @@ pub fn run() {
             .resizable(false)
             .title("Bootstrap")
             .maximizable(false)
-            .inner_size(520 as f64, 380 as f64)
+            .inner_size(520_f64, 380_f64)
             .decorations(false)
             .visible(false)
             .always_on_top(true)
@@ -220,7 +210,7 @@ pub fn run() {
                 // FOR EXAMPLE: oneshot channel that measures every 200 milisecond and based on time duration
                 // it calculates progress percentage, when reaching WINDOW_LOADED, it's calculated to a 1:1 ratio in 0-100%
                 async_runtime::spawn(async move {
-                    for num in vec![
+                    for num in [
                         rand::random_range(0.0..=0.2),
                         rand::random_range(0.2..0.4),
                         rand::random_range(0.4..0.8),

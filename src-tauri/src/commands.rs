@@ -181,11 +181,10 @@ pub async fn check_proxy_list(
 
             let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
-                't1: while receiver.len() != 0 && !token.is_cancelled() {
+                't1: while !receiver.is_empty() && !token.is_cancelled() {
                     let app_clone = app_clone.clone();
                     let proxy = receiver.try_recv();
-                    if proxy.is_ok() {
-                        let proxy = proxy.unwrap();
+                    if let Ok(proxy) = proxy {
                         let task = timeout(d, async {
                             let result: anyhow::Result<Ack> = async {
                                 let proxy = &proxy;
@@ -207,7 +206,7 @@ pub async fn check_proxy_list(
                                             proxifier_rs::Context {
                                                 proxy: format!("{}:{}",
                                                     uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
-                                                    uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?.to_string()
+                                                    uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
                                                 ).parse()?,
                                                 // make it so that judges are configurable, not supported yet
                                                 destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
@@ -216,7 +215,7 @@ pub async fn check_proxy_list(
                                         )
                                         .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
 
-                                        conn.write(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                        conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
                                             .await?;
 
                                         let mut resp = String::new();
