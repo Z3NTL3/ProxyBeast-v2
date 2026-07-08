@@ -171,7 +171,8 @@ const App = function () {
   };
 
   const exportProxies = async () => {
-    if (proxies.length < 1) return;
+    if (proxies.length < 1)
+      toast.warning("No live proxies were found to be saved");
     let path = await save({
       filters: [
         {
@@ -184,7 +185,9 @@ const App = function () {
     if (path !== null)
       writeTextFile(path, proxies.join("\n"))
         .then(console.log)
-        .catch(console.error);
+        .catch((err) =>
+          toast.error("Failed exporting proxies to given location"),
+        );
   };
 
   const calcProgress = () => {
