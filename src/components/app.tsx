@@ -1,7 +1,7 @@
 import { memo, useContext, useEffect, useRef, useState } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { AiOutlineCloudUpload } from "react-icons/ai";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { TiMediaPlayOutline } from "react-icons/ti";
 import { PiDownloadSimple } from "react-icons/pi";
 import { invoke, Channel } from "@tauri-apps/api/core";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ScreenContext } from "@/screen.context";
 import { Badge } from "./ui/badge";
 import { RxFile } from "react-icons/rx";
+import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 
 const App = function () {
   let [logs, setLogs] = useState<
@@ -169,6 +170,23 @@ const App = function () {
     });
   };
 
+  const exportProxies = async () => {
+    if (proxies.length < 1) return;
+    let path = await save({
+      filters: [
+        {
+          name: "Proxy file(txt)",
+          extensions: ["txt"],
+        },
+      ],
+    });
+
+    if (path !== null)
+      writeTextFile(path, proxies.join("\n"))
+        .then(console.log)
+        .catch(console.error);
+  };
+
   const calcProgress = () => {
     let current_progress = live_pane.current + dead_pane.current;
     let p = (current_progress / load_pane) * 100;
@@ -299,7 +317,10 @@ const App = function () {
             {!didStart ? "Start Check" : "Stop Check"}
           </div>
 
-          <div className="hover:shadow-[1px_1px_30px_0.1px_rgba(255,255,255,0.02)] cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs">
+          <div
+            onClick={() => exportProxies()}
+            className="hover:shadow-[1px_1px_30px_0.1px_rgba(255,255,255,0.02)] cursor-pointer flex flex-col gap-y-1 items-center justify-center border border-white/10 text-center rounded-lg ml-2 mt-4 p-2 text-white/40 text-xs"
+          >
             <PiDownloadSimple className="text-white/70 font-bold" size={18} />
             Export Proxies
           </div>

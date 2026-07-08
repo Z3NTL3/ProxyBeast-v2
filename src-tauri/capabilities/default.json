@@ -15,9 +15,6 @@
       "identifier": "opener:allow-open-path",
       "allow": [
         {
-          "path": "$APPCACHE/saves/**"
-        },
-        {
           "path": "$APPLOG"
         }
       ]
@@ -36,9 +33,6 @@
       ]
     },
     "fs:default",
-    {
-      "identifier": "fs:scope-appcache-recursive",
-      "allow": [{ "path": "$APPLOG/**" }]
-    }
+    "fs:write-all"
   ]
 }
