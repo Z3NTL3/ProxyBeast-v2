@@ -9,10 +9,9 @@ jobs:
     name: List open user PRs
     runs-on: ubuntu-22.04
     env:
-      GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      AUTHOR: "${{ github.event.pull_request.user }}"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      AUTHOR: ${{ github.event.pull_request.user.id }}
     steps:
       - run: |
-          echo $AUTHOR
           gh pr ls -A $AUTHOR >> prs.txt
           gh pr comment ${{ github.event.pull_request.number }} -F prs.txt
