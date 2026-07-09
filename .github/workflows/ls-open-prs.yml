@@ -20,7 +20,7 @@ jobs:
       - run: |
           LIST=$(gh pr ls -A $AUTHOR -R $REPO)
 
-          cat << EOF >> body.txt
+          cat << EOF > body.txt
           Current PR list for @$NAME:
             $(
             if [ ${#LIST} -gt 0 ]; then
