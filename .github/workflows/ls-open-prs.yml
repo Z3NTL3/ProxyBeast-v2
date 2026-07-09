@@ -17,4 +17,13 @@ jobs:
       REPO: ${{ github.repository }}
     steps:
       - run: |
-          gh pr comment $PR_NUMBER -R $REPO -b $(gh pr ls -A $AUTHOR -R $REPO)
+          LIST=$(gh pr ls -A $AUTHOR -R $REPO)
+          COMMENT_BODY=$(cat <<EOF
+          Current PR list for @$AUTHOR:
+          \`\`\`
+          $LIST
+          \`\`\`
+          EOF
+          )
+
+          gh pr comment $PR_NUMBER -R $REPO -b '$LIST'
