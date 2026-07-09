@@ -18,12 +18,10 @@ jobs:
     steps:
       - run: |
           LIST=$(gh pr ls -A $AUTHOR -R $REPO)
-          COMMENT_BODY=$(cat <<EOF
-          Current PR list for @$AUTHOR:
-          \`\`\`
-          $LIST
-          \`\`\`
-          EOF
-          )
 
-          gh pr comment $PR_NUMBER -R $REPO -b $COMMENT_BODY
+          cat << EOF >> body.txt
+          Current PR list for @$AUTHOR:
+          $LIST
+          EOF
+
+          gh pr comment $PR_NUMBER -R $REPO -F body.txt
