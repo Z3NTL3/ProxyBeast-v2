@@ -12,7 +12,7 @@ jobs:
       pull-requests: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      AUTHOR: ${{ github.event.pull_request.user.id }}
+      AUTHOR: ${{ github.event.pull_request.user.name }}
       PR_NUMBER: ${{ github.event.number }}
       REPO: ${{ github.repository }}
     steps:
@@ -21,7 +21,13 @@ jobs:
 
           cat << EOF >> body.txt
           Current PR list for @$AUTHOR:
-          $LIST
+            $(
+            if [ ${#LIST} -gt 0 ]; then
+              echo $LIST
+            else
+                echo "No open PRs"
+            fi
+            )
           EOF
 
           gh pr comment $PR_NUMBER -R $REPO -F body.txt
