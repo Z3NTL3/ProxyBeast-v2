@@ -139,6 +139,7 @@ pub fn run() {
                 pool_size: 1000,
                 judge: "google.com".into(),
                 enforce_scheme: "uri".into(),
+                use_tls: true,
             };
 
             match fs::exists(config_file.clone()) {

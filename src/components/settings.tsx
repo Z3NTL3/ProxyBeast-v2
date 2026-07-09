@@ -28,7 +28,8 @@ interface AppSettings {
   poolSize: number;
   timeoutMS: number;
   judge: string;
-  scheme: string
+  scheme: string;
+  use_tls: boolean
 }
 
 const JUDGES: Array<{ label: string; value: string }> = [
@@ -46,7 +47,7 @@ const JUDGES: Array<{ label: string; value: string }> = [
   },
 ];
 
-type SchemeKind = "uri" | "multi" | "http" | "https" | "socks4" | "socks5"
+type SchemeKind = "uri" | "multi" | "http" | "socks4" | "socks5"
 const SCHEMES: Array<{ label: string; value: SchemeKind }> = [
   {
     label: "URI",
@@ -59,10 +60,6 @@ const SCHEMES: Array<{ label: string; value: SchemeKind }> = [
   {
     label: "HTTP",
     value: "http",
-  },
-  {
-    label: "HTTPS",
-    value: "https",
   },
   {
     label: "SOCKS4",
@@ -78,7 +75,6 @@ const TOOLTIP_CONTENT_MAP: {[k in SchemeKind]: string} = {
   uri: "Expects URI format per line in your proxy list file",
   multi: "Scans for all protocols on every proxy",
   http: "Scan only for HTTP protocol",
-  https: "Scan only for HTTPS protocol (TLS)",
   socks4: "Scan only for SOCKS4 protocol",
   socks5: "Scan only for SOCKS5 protocol"
 }
@@ -89,7 +85,8 @@ export default function Settings() {
     poolSize: 1000,
     timeoutMS: 5000,
     judge: "google.com",
-    scheme: "uri"
+    scheme: "uri",
+    use_tls: true
   });
   let [poolSet, setPoolSet] = useState(false);
   console.log(settings)
@@ -151,7 +148,8 @@ export default function Settings() {
         poolSize: 1000,
         timeoutMS: 5000,
         judge: "google.com",
-        scheme: "uri"
+        scheme: "uri",
+        use_tls: true
       };
     });
     saveSettings(true);
@@ -381,6 +379,20 @@ export default function Settings() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+          {/* end */}
+
+          {/* sub item */}
+          <div className="flex mt-5">
+            <div className="flex flex-col">
+              <h3 className="text-[14px] text-gray-300">TLS</h3>
+              <p className="text-[12px] text-gray-400">
+                Wrap & wire connection with TLS.
+              </p>
+            </div>
+            <div className="flex grow  justify-end items-center">
+              <Switch checked />
+            </div>
           </div>
           {/* end */}
 

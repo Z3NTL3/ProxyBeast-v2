@@ -20,6 +20,9 @@ pub struct AppConfig {
         rename(serialize = "scheme", deserialize = "scheme")
     )]
     pub enforce_scheme: String,
+
+    #[serde(default = "default_tls")]
+    pub use_tls: bool,
 }
 
 fn default_judge() -> String {
@@ -28,4 +31,8 @@ fn default_judge() -> String {
 
 fn default_scheme() -> String {
     "uri".into()
+}
+
+fn default_tls() -> bool {
+    true
 }
