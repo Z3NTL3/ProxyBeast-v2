@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      AUTHOR: ${{ github.event.pull_request.user }}
+      AUTHOR: ${{ github.event.pull_request.pull_request.user }}
     steps:
       - run: |
           gh pr ls -A $AUTHOR >> prs.txt
-          gh pr comment ${{ github.event.pull_request.number }} -F prs.txt
+          gh pr comment ${{ github.event.pull_request.pull_request.number }} -F prs.txt
