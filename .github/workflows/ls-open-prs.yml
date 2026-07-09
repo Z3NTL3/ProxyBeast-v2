@@ -12,7 +12,8 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       AUTHOR: ${{ github.event.pull_request.user.id }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
     steps:
       - run: |
-          gh pr ls -A $AUTHOR >> prs.txt
-          gh pr comment $PR_NUMBER -F prs.txt
+          gh pr ls -A $AUTHOR -R $REPO >> prs.txt
+          gh pr comment $PR_NUMBER  -R $REPO -F prs.txt
