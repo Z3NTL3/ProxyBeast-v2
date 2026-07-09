@@ -10,6 +10,7 @@ use tauri::{AppHandle, Emitter, Listener, Manager, async_runtime};
 use tokio::sync::RwLock;
 use tracing::field::Visit;
 use tracing::{Subscriber, info};
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{Layer, Registry, fmt};
@@ -21,6 +22,8 @@ struct AppState {
     proxy_checker: ProxyChecker,
     tls_config: Arc<ClientConfig>,
     app_config: RwLock<models::AppConfig>,
+    #[allow(unused)]
+    log_guard: WorkerGuard,
 }
 
 struct ProxyChecker {
@@ -110,6 +113,7 @@ pub fn run() {
             let (non_blocking_appender, _guard) = tracing_appender::non_blocking(file_appender);
 
             let subscriber = Registry::default()
+                .with(LiveLogs.with_filter(filter_fn(|metadata| metadata.target() == LIVE_LOGS)))
                 .with(
                     fmt::Layer::default()
                         // $APPLOG file
@@ -124,8 +128,7 @@ pub fn run() {
                         .with_line_number(true)
                         .pretty()
                         .with_ansi(true),
-                )
-                .with(LiveLogs.with_filter(filter_fn(|metadata| metadata.target() == LIVE_LOGS)));
+                );
             tracing::subscriber::set_global_default(subscriber)
                 .expect("failed setting default subscriber");
 
@@ -171,6 +174,7 @@ pub fn run() {
             };
 
             app.manage(AppState {
+                log_guard: _guard,
                 proxy_checker: checker,
                 tls_config: config,
                 app_config: RwLock::new(app_config),
