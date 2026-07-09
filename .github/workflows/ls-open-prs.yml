@@ -26,7 +26,7 @@ jobs:
             if [ ${#LIST} -gt 0 ]; then
               echo $LIST
             else
-                echo "No open PRs"
+              echo "No open PRs"
             fi
             )
           EOF
