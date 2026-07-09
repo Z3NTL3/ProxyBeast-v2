@@ -17,7 +17,6 @@ jobs:
       REPO: ${{ github.repository }}
     steps:
       - run: |
-          echo $PR_NUMBER
-          echo $AUTHOR
-          gh pr ls -A $AUTHOR -R $REPO >> prs.txt
-          gh pr comment $PR_NUMBER -R $REPO -F prs.txt
+          gh pr comment $PR_NUMBER -R $REPO -b ' \
+          $(gh pr ls -A $AUTHOR -R $REPO) \
+          '
