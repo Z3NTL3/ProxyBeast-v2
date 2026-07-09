@@ -13,7 +13,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       AUTHOR: ${{ github.event.pull_request.user.id }}
-      NAME: ${{ github.event.pull_request.user.name }}
+      NAME: ${{ github.event.pull_request.user.login }}
       PR_NUMBER: ${{ github.event.number }}
       REPO: ${{ github.repository }}
     steps:
