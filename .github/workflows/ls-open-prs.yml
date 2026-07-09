@@ -26,4 +26,4 @@ jobs:
           EOF
           )
 
-          gh pr comment $PR_NUMBER -R $REPO -b '$(COMMENT_BODY)'
+          gh pr comment $PR_NUMBER -R $REPO -b $COMMENT_BODY
