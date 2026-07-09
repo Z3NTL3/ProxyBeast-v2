@@ -8,6 +8,8 @@ jobs:
   list-prs:
     name: List open user PRs
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       AUTHOR: ${{ github.event.pull_request.user.id }}
