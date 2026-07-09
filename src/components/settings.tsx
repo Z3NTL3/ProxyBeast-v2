@@ -27,7 +27,8 @@ const APPLOG_DIR = await path.appLogDir();
 interface AppSettings {
   poolSize: number;
   timeoutMS: number;
-  judge: String;
+  judge: string;
+  scheme: string
 }
 
 const JUDGES: Array<{ label: string; value: string }> = [
@@ -44,14 +45,54 @@ const JUDGES: Array<{ label: string; value: string }> = [
     value: "proxyspace.pro",
   },
 ];
+
+type SchemeKind = "uri" | "multi" | "http" | "https" | "socks4" | "socks5"
+const SCHEMES: Array<{ label: string; value: SchemeKind }> = [
+  {
+    label: "URI",
+    value: "uri",
+  },
+  {
+    label: "MULTI",
+    value: "multi",
+  },
+  {
+    label: "HTTP",
+    value: "http",
+  },
+  {
+    label: "HTTPS",
+    value: "https",
+  },
+  {
+    label: "SOCKS4",
+    value: "socks4",
+  },
+  {
+    label: "SOCKS5",
+    value: "socks5",
+  },
+];
+
+const TOOLTIP_CONTENT_MAP: {[k in SchemeKind]: string} = {
+  uri: "Expects URI format per line in your proxy list file",
+  multi: "Scans for all protocols on every proxy",
+  http: "Scan only for HTTP protocol",
+  https: "Scan only for HTTPS protocol (TLS)",
+  socks4: "Scan only for SOCKS4 protocol",
+  socks5: "Scan only for SOCKS5 protocol"
+}
+
 export default function Settings() {
   let screen = useContext(ScreenContext);
   let [settings, setSettings] = useState<AppSettings>({
     poolSize: 1000,
     timeoutMS: 5000,
     judge: "google.com",
+    scheme: "uri"
   });
   let [poolSet, setPoolSet] = useState(false);
+  console.log(settings)
 
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
@@ -110,6 +151,7 @@ export default function Settings() {
         poolSize: 1000,
         timeoutMS: 5000,
         judge: "google.com",
+        scheme: "uri"
       };
     });
     saveSettings(true);
@@ -239,10 +281,64 @@ export default function Settings() {
             max={20000}
             step={100}
           />
-          <p className="mt-5 text-gray-400 text-[12px]">
-            Our proxy checker uses <URI_Tooltip /> schemes to detect multi
-            protocol proxies. We will add options to force select a scheme soon.
-          </p>
+
+          {/* sub item */}
+          <div className="flex flex-col mt-5">
+            <div className="flex flex-col mb-2">
+              <h3 className="text-[14px] text-gray-300">Protocol Scheme</h3>
+              <p className="text-[12px] text-gray-400">Enforce certain schemes over your proxy list.</p>
+            </div>
+
+            <Select
+              items={SCHEMES}
+              onValueChange={(v, _) => {
+                if (v === null || typeof v === "undefined") return;
+
+                setSettings((settings) => {
+                  return {
+                    ...settings,
+                    scheme: v as string,
+                  };
+                });
+              }}
+              multiple={false}
+            >
+              <SelectTrigger
+                value={settings.scheme as string}
+                className="w-[180px]"
+              >
+                <Tooltip>
+                  <TooltipTrigger render={
+                    <SelectValue placeholder={settings.scheme.toUpperCase()} />
+                  } />
+                  <TooltipContent>
+                    {TOOLTIP_CONTENT_MAP[settings.scheme as SchemeKind]}
+                  </TooltipContent>
+                </Tooltip>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {SCHEMES.map((v, i) => (
+                    <Tooltip>
+                      <TooltipTrigger render={
+                        <SelectItem
+                          key={`select-item-${i}`}
+                          disabled={settings.scheme === v.value ? true : false}
+                          value={v.value}
+                        >
+                          {v.label}
+                        </SelectItem>
+                      } />
+                      <TooltipContent>
+                        {TOOLTIP_CONTENT_MAP[v.value]}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          {/* end */}
 
           {/* sub item */}
           <div className="flex flex-col mt-5">

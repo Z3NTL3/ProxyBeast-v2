@@ -12,10 +12,20 @@ pub struct AppConfig {
     #[serde(rename(serialize = "timeoutMS", deserialize = "timeoutMS"))]
     pub timeout: Duration,
 
+    // Fields with defaults
     #[serde(default = "default_judge")]
     pub judge: String,
+    #[serde(
+        default = "default_scheme",
+        rename(serialize = "scheme", deserialize = "scheme")
+    )]
+    pub enforce_scheme: String,
 }
 
 fn default_judge() -> String {
     "google.com".into()
+}
+
+fn default_scheme() -> String {
+    "uri".into()
 }
