@@ -5,7 +5,6 @@ import { Switch } from "@/components/ui/switch";
 import { SiTraefikproxy } from "react-icons/si";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import URI_Tooltip from "./uri-tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
@@ -29,7 +28,8 @@ interface AppSettings {
   timeoutMS: number;
   judge: string;
   scheme: string;
-  use_tls: boolean
+  use_tls: boolean;
+  retry: boolean;
 }
 
 const JUDGES: Array<{ label: string; value: string }> = [
@@ -86,7 +86,8 @@ export default function Settings() {
     timeoutMS: 5000,
     judge: "google.com",
     scheme: "uri",
-    use_tls: true
+    use_tls: true,
+    retry: true
   });
   let [poolSet, setPoolSet] = useState(false);
   console.log(settings)
@@ -149,7 +150,8 @@ export default function Settings() {
         timeoutMS: 5000,
         judge: "google.com",
         scheme: "uri",
-        use_tls: true
+        use_tls: true,
+        retry: true
       };
     });
     saveSettings(true);
@@ -180,15 +182,14 @@ export default function Settings() {
               </p>
             </div>
             <div className="flex grow  justify-end items-center">
-              <Tooltip>
-                <TooltipTrigger>
-                  <Switch disabled />
-                </TooltipTrigger>
-
-                <TooltipContent className="text-[12px] ">
-                  This feature is not implemented yet
-                </TooltipContent>
-              </Tooltip>
+              <Switch onCheckedChange={((checked) => {
+                setSettings((settings) => {
+                  return {
+                    ...settings,
+                    retry: checked
+                  }
+                })
+              })} checked={settings.retry} />
             </div>
           </div>
           {/* end */}

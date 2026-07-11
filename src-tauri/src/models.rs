@@ -23,6 +23,8 @@ pub struct AppConfig {
 
     #[serde(default = "default_tls")]
     pub use_tls: bool,
+    #[serde(default = "default_retry")]
+    pub retry: bool,
 }
 
 fn default_judge() -> String {
@@ -34,5 +36,9 @@ fn default_scheme() -> String {
 }
 
 fn default_tls() -> bool {
+    true
+}
+
+fn default_retry() -> bool {
     true
 }

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { ScreenContext } from "@/screen.context";
 import { Badge } from "./ui/badge";
 import { RxFile } from "react-icons/rx";
-import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 const App = function () {
   let [logs, setLogs] = useState<

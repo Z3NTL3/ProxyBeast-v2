@@ -140,6 +140,7 @@ pub fn run() {
                 judge: "google.com".into(),
                 enforce_scheme: "uri".into(),
                 use_tls: true,
+                retry: true,
             };
 
             match fs::exists(config_file.clone()) {
