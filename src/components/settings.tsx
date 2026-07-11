@@ -391,7 +391,14 @@ export default function Settings() {
               </p>
             </div>
             <div className="flex grow  justify-end items-center">
-              <Switch checked />
+              <Switch onCheckedChange={((checked) => {
+                setSettings((settings) => {
+                  return {
+                    ...settings,
+                    use_tls: checked
+                  }
+                })
+              })} checked={settings.use_tls} />
             </div>
           </div>
           {/* end */}

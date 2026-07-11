@@ -40,8 +40,7 @@ pub async fn save_settings(app: AppHandle, payload: models::AppConfig) -> Result
 
     let state = app.state::<crate::AppState>();
     let mut guard = state.app_config.write().await;
-    guard.pool_size = payload.pool_size;
-    guard.timeout = payload.timeout;
+    *guard = payload;
 
     Ok(true)
 }
