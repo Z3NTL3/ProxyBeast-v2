@@ -18,7 +18,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use url::Url;
 
-use crate::models;
+use crate::models::{self, Scheme};
 
 #[derive(Debug)]
 struct Ack<'a> {
@@ -180,6 +180,8 @@ pub async fn check_proxy_list(
 
             let t = tokio::spawn(async move {
                 let state = app_clone.state::<crate::AppState>();
+                let config = state.app_config.read().await;
+
                 't1: while !receiver.is_empty() && !token.is_cancelled() {
                     let app_clone = app_clone.clone();
                     let proxy = receiver.try_recv();
@@ -187,6 +189,18 @@ pub async fn check_proxy_list(
                         let task = timeout(d, async {
                             let result: anyhow::Result<Ack> = async {
                                 let proxy = &proxy;
+                                let scheme = config.enforce_scheme;
+
+                                // todo
+                                match scheme {
+                                    Scheme::MULTI => {},
+                                    Scheme::HTTP => {},
+                                    Scheme::HTTPS => {},
+                                    Scheme::SOCKS4 => {}
+                                    Scheme::SOCKS5 => {}
+                                    _ => {}
+                                };
+
                                 let uri = proxy.parse::<Url>()?;
                                 info!("proxy recv: {:?}", proxy);
 

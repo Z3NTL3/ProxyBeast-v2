@@ -47,36 +47,41 @@ const JUDGES: Array<{ label: string; value: string }> = [
   },
 ];
 
-type SchemeKind = "uri" | "multi" | "http" | "socks4" | "socks5"
+type SchemeKind = "URI" | "MULTI" | "HTTP" | "HTTPS" | "SOCKS4" | "SOCKS5"
 const SCHEMES: Array<{ label: string; value: SchemeKind }> = [
   {
     label: "URI",
-    value: "uri",
+    value: "URI",
   },
   {
     label: "MULTI",
-    value: "multi",
+    value: "MULTI",
   },
   {
     label: "HTTP",
-    value: "http",
+    value: "HTTP",
+  },
+  {
+    label: "HTTPS",
+    value: "HTTPS",
   },
   {
     label: "SOCKS4",
-    value: "socks4",
+    value: "SOCKS4",
   },
   {
     label: "SOCKS5",
-    value: "socks5",
+    value: "SOCKS5",
   },
 ];
 
 const TOOLTIP_CONTENT_MAP: {[k in SchemeKind]: string} = {
-  uri: "Expects URI format per line in your proxy list file",
-  multi: "Scans for all protocols on every proxy",
-  http: "Scan only for HTTP protocol",
-  socks4: "Scan only for SOCKS4 protocol",
-  socks5: "Scan only for SOCKS5 protocol"
+  URI: "Expects URI format per line in your proxy list file",
+  MULTI: "Scans for all protocols on every proxy",
+  HTTP: "Scan only for HTTP protocol",
+  HTTPS: "Scan only for HTTPS protocol",
+  SOCKS4: "Scan only for SOCKS4 protocol",
+  SOCKS5: "Scan only for SOCKS5 protocol"
 }
 
 export default function Settings() {
@@ -149,7 +154,7 @@ export default function Settings() {
         poolSize: 1000,
         timeoutMS: 5000,
         judge: "google.com",
-        scheme: "uri",
+        scheme: "URI",
         use_tls: true,
         retry: true
       };
@@ -308,7 +313,7 @@ export default function Settings() {
               >
                 <Tooltip>
                   <TooltipTrigger render={
-                    <SelectValue placeholder={settings.scheme.toUpperCase()} />
+                    <SelectValue placeholder={settings.scheme} />
                   } />
                   <TooltipContent>
                     {TOOLTIP_CONTENT_MAP[settings.scheme as SchemeKind]}
