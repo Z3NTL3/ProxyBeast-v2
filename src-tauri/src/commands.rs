@@ -1,14 +1,18 @@
 use crate::models::{self, MaybeTLS, Scheme};
 use anyhow::anyhow;
 use fancy_regex::Regex;
-use proxifier_rs::auth::Auth;
-use proxifier_rs::{NetworkTarget, Port, ServerName};
+use proxifier_rs::{
+    Context, NetworkTarget, Port, ServerName, auth::Auth, http::tunnel as http, https::HttpsProxy,
+    socks_with_tls, socks4::connect as socks4, socks5::connect as socks5,
+};
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::SeqCst;
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
+use tokio::net::lookup_host;
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
 use tokio::{fs, select};
@@ -240,57 +244,130 @@ pub async fn check_proxy_list(
                                     let retry = &config.retry;
                                     let tls = &config.use_tls;
 
+                                    let mut host = {
+                                        let q = lookup_host(judge).await?
+                                            .next()
+                                            .ok_or(anyhow!("dns res failed for judge"))?;
+
+                                        match q {
+                                            SocketAddr::V4(ip) => {
+                                                ip
+                                            },
+                                            _ => {
+                                                return Err(anyhow!("dns res can only resolve to ipv4"));
+                                            }
+                                        }
+                                    };
+
+
                                     let now = Instant::now();
                                     match uri.scheme() {
                                         "http" => {},
                                         "https" => {},
-                                        "socks4" => {},
+                                        "socks4" => {
+                                            let conn: models::MaybeTLS = if *tls {
+                                                host.set_port(443);
+                                                MaybeTLS::Tls(Box::new(socks_with_tls(
+                                                    socks4(
+                                                        Context {
+                                                            proxy: format!("{}:{}",
+                                                                uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                                                uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
+                                                            ).parse()?,
+                                                            destination: host,
+                                                        }
+                                                    ).await?,
+                                                    state.tls_config.clone(),
+                                                    ServerName::try_from(judge.to_string())?
+                                                ).await?))
+                                            } else {
+                                                host.set_port(80);
+                                                MaybeTLS::Plain(
+                                                    socks4(
+                                                        Context {
+                                                            proxy: format!("{}:{}",
+                                                                uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                                                uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
+                                                            ).parse()?,
+                                                            destination: host,
+                                                        }
+                                                    ).await?
+                                                )
+                                            };
+
+                                            match conn {
+                                                MaybeTLS::Plain(mut conn) => {
+                                                    conn.write_all(format!("GET / HTTP/1.1\r\nHost: {judge}:80\r\nConnection: close\r\n\r\n").as_bytes())
+                                                        .await?;
+
+                                                    let mut resp = String::new();
+                                                    conn.read_to_string(&mut resp).await?;
+                                                    info!("net ack {}", resp)
+                                                }
+                                                MaybeTLS::Tls(mut conn) => {
+                                                    conn.write_all(format!("GET / HTTP/1.1\r\nHost: {judge}:443\r\nConnection: close\r\n\r\n").as_bytes())
+                                                        .await?;
+
+                                                    let mut resp = String::new();
+                                                    conn.read_to_string(&mut resp).await?;
+                                                    info!("net ack {}", resp)
+                                                }
+                                            }
+                                        },
                                         "socks5" => {
                                             if let Some(pass) = uri.password() {
                                                 auth = Auth::UserPass(uri.username().into(), pass.into())
                                             }
 
-                                            let conn_ = proxifier_rs::socks5::connect(
-                                                proxifier_rs::Context {
-                                                    proxy: format!("{}:{}",
-                                                        uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
-                                                        uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
-                                                    ).parse()?,
-                                                    // make it so that judges are configurable, not supported yet
-                                                    destination: NetworkTarget::Domain(judge.parse()?, Port(443)),
-                                                },
-                                                auth,
-                                            ).await?;
-
                                             let conn: models::MaybeTLS = if *tls {
-                                                MaybeTLS::Tls(Box::new(proxifier_rs::socks_with_tls(
-                                                    conn_,
+                                                MaybeTLS::Tls(Box::new(socks_with_tls(
+                                                    socks5(
+                                                        Context {
+                                                            proxy: format!("{}:{}",
+                                                                uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                                                uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
+                                                            ).parse()?,
+                                                            destination: NetworkTarget::Domain(judge.parse()?, Port(443)),
+                                                        },
+                                                        auth,
+                                                    ).await?,
                                                     state.tls_config.clone(),
                                                     ServerName::try_from(judge.to_string())?
                                                 ).await?))
                                             } else {
-                                                MaybeTLS::Plain(conn_)
+                                                MaybeTLS::Plain(
+                                                    socks5(
+                                                        Context {
+                                                            proxy: format!("{}:{}",
+                                                                uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                                                uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
+                                                            ).parse()?,
+                                                            destination: NetworkTarget::Domain(judge.parse()?, Port(80)),
+                                                        },
+                                                        auth,
+                                                    ).await?
+                                                )
                                             };
 
                                             match conn {
                                                 MaybeTLS::Plain(mut conn) => {
-                                                    conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                                    conn.write_all(format!("GET / HTTP/1.1\r\nHost: {judge}:80\r\nConnection: close\r\n\r\n").as_bytes())
                                                         .await?;
 
                                                     let mut resp = String::new();
                                                     conn.read_to_string(&mut resp).await?;
+                                                    info!("net ack {}", resp)
                                                 }
-                                                // this looks redundant but must be implemented this way as a join is rejected by compiler because of different types
-                                                // see if tls statement above which transforms plain conn to TLS if TLS setting was enabled
                                                 MaybeTLS::Tls(mut conn) => {
-                                                    conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                                    conn.write_all(format!("GET / HTTP/1.1\r\nHost: {judge}:443\r\nConnection: close\r\n\r\n").as_bytes())
                                                         .await?;
 
                                                     let mut resp = String::new();
                                                     conn.read_to_string(&mut resp).await?;
+
+                                                    info!("net ack {}", resp)
                                                 }
                                             }
-
                                         }
                                         _  => {
                                             error!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
