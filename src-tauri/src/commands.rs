@@ -187,7 +187,7 @@ pub async fn check_proxy_list(
                         let scheme = config.enforce_scheme;
                         // select the partitions after the protocol scheme
                         let re = Regex::new(
-                            r"(?<=((socks4:\/\/)|(socks5:\/\/)|(http:\/\/)|(https:\/\/)))(.*)",
+                            r"[^(socks4:\/\/)|(socks5:\/\/)|(http:\/\/)|(https:\/\/)](.*)",
                         );
 
                         if re.is_err() {
