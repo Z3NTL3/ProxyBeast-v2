@@ -1,28 +1,24 @@
-#![allow(unused)]
-use crate::models::{self, Scheme};
+use crate::models::{self, MaybeTLS, Scheme};
 use anyhow::anyhow;
 use fancy_regex::Regex;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
-use serde::de::Unexpected::Seq;
-use std::net::SocketAddrV4;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
-use std::sync::atomic::Ordering::{Acquire, Relaxed, Release, SeqCst};
-use std::time::Duration;
+use std::sync::atomic::Ordering::SeqCst;
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
-use tokio::{fs, join, select};
+use tokio::{fs, select};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 use url::Url;
 
 #[derive(Debug)]
-struct Ack<'a> {
-    proxy: &'a str,
+struct Ack {
+    proxy: String,
     /// Latency in miliseconds [`core::time::Duration::as_millis`]
     latency: u128,
 }
@@ -60,7 +56,7 @@ pub async fn stop_check(state: tauri::State<'_, crate::AppState>) -> Result<(), 
     }
     let recv = state.proxy_checker.pipe.1.clone();
     while !recv.is_empty() {
-        recv.recv().await;
+        let _ = recv.recv().await;
     }
 
     state.proxy_checker.fd_state.store(false, SeqCst);
@@ -81,7 +77,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
     {
         let receiver = state.proxy_checker.pipe.1.clone();
         while !receiver.is_empty() {
-            receiver.try_recv();
+            let _ = receiver.try_recv();
         }
     }
 
@@ -97,7 +93,7 @@ pub async fn read_file(handle: AppHandle, path: String) -> Result<u16, String> {
 
                 let sender_clone = sender.clone();
                 tokio::spawn(async move {
-                    sender_clone.send(line).await;
+                    let _ = sender_clone.send(line).await;
                 });
             }
         }
@@ -141,7 +137,7 @@ pub async fn check_proxy_list(
     let ongoing = state.proxy_checker.workers_state.load(SeqCst);
     let fd_state = state.proxy_checker.fd_state.load(SeqCst);
     if ongoing | !fd_state {
-        if (!fd_state) {
+        if !fd_state {
             return Err("Upload a proxy list file".into());
         }
 
@@ -153,12 +149,12 @@ pub async fn check_proxy_list(
 
     state.proxy_checker.workers_state.store(true, SeqCst);
     tokio::spawn(async move {
-        let mut count = Arc::new(AtomicU64::new(0));
+        let count = Arc::new(AtomicU64::new(0));
         let state = app.state::<crate::AppState>();
         let mut tasks: Vec<JoinHandle<()>> = vec![];
 
         info!("worker pool starting");
-        chan.send("proxy-checker:start".into());
+        let _ = chan.send("proxy-checker:start".into());
 
         let sender = state.proxy_checker.pipe.0.clone();
         let receiver = state.proxy_checker.pipe.1.clone();
@@ -166,7 +162,7 @@ pub async fn check_proxy_list(
 
         // it's absolutely guaranteed that unwrap call will resolve to T
         // and will never fail
-        for i in 0..=sender.capacity().unwrap() {
+        for _ in 0..=sender.capacity().unwrap() {
             let count = count.clone();
             if token.is_cancelled() {
                 break;
@@ -174,7 +170,6 @@ pub async fn check_proxy_list(
 
             let app_clone = app.clone();
             let chan = chan.clone();
-            let sender = sender.clone();
             let receiver = receiver.clone();
             let token = token.clone();
 
@@ -183,10 +178,10 @@ pub async fn check_proxy_list(
                 let config = state.app_config.read().await;
 
                 't1: while !receiver.is_empty() && !token.is_cancelled() {
-                    let app_clone = app_clone.clone();
                     let proxy = receiver.try_recv();
                     if let Ok(mut proxy) = proxy {
                         let scheme = config.enforce_scheme;
+                        // select the partitions after the protocol scheme
                         let re = Regex::new(
                             r"(?<=((socks4:\/\/)|(socks5:\/\/)|(http:\/\/)|(https:\/\/)))(.*)",
                         );
@@ -196,6 +191,7 @@ pub async fn check_proxy_list(
                             continue 't1;
                         }
 
+                        let alt_proxy = proxy.clone();
                         let re = re.unwrap();
                         match re.find(&proxy) {
                             Ok(Some(v)) => {
@@ -203,18 +199,19 @@ pub async fn check_proxy_list(
                                 proxy = v.as_str().to_owned();
                             }
                             Ok(None) => {
-                                error!("regex didnt match continuing 't1");
+                                error!("regex didnt match break 't1");
+                                let _ = chan.send("error|invalid-protocol-scheme".to_string());
                                 continue 't1;
                             }
                             Err(err) => {
-                                error!("regex didnt match continuing 't1");
+                                error!("{err} continuing 't1");
                                 continue 't1;
                             }
                         };
 
                         let mut combine_scan: Vec<String> = vec![];
                         match scheme {
-                            Scheme::Uri => combine_scan.push(proxy.to_string()),
+                            Scheme::Uri => combine_scan.push(alt_proxy),
                             Scheme::Multi => {
                                 for proc in ["http", "https", "socks4", "socks5"] {
                                     combine_scan.push(format!("{}://{}", proc, proxy));
@@ -239,7 +236,9 @@ pub async fn check_proxy_list(
 
                                     let mut auth = Auth::NoAuth;
                                     let judge = &config.judge;
+                                    #[allow(unused)]
                                     let retry = &config.retry;
+                                    let tls = &config.use_tls;
 
                                     let now = Instant::now();
                                     match uri.scheme() {
@@ -251,32 +250,54 @@ pub async fn check_proxy_list(
                                                 auth = Auth::UserPass(uri.username().into(), pass.into())
                                             }
 
-                                            let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
+                                            let conn_ = proxifier_rs::socks5::connect(
                                                 proxifier_rs::Context {
                                                     proxy: format!("{}:{}",
                                                         uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
                                                         uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
                                                     ).parse()?,
                                                     // make it so that judges are configurable, not supported yet
-                                                    destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
+                                                    destination: NetworkTarget::Domain(judge.parse()?, Port(443)),
                                                 },
                                                 auth,
-                                            )
-                                            .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
+                                            ).await?;
 
-                                            conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
-                                                .await?;
+                                            let conn: models::MaybeTLS = if *tls {
+                                                MaybeTLS::Tls(Box::new(proxifier_rs::socks_with_tls(
+                                                    conn_,
+                                                    state.tls_config.clone(),
+                                                    ServerName::try_from(judge.to_string())?
+                                                ).await?))
+                                            } else {
+                                                MaybeTLS::Plain(conn_)
+                                            };
 
-                                            let mut resp = String::new();
-                                            conn.read_to_string(&mut resp).await?;
-                                            // info!("network ack: {:?}", resp);
+                                            match conn {
+                                                MaybeTLS::Plain(mut conn) => {
+                                                    conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                                        .await?;
+
+                                                    let mut resp = String::new();
+                                                    conn.read_to_string(&mut resp).await?;
+                                                }
+                                                // this looks redundant but must be implemented this way as a join is rejected by compiler because of different types
+                                                // see if tls statement above which transforms plain conn to TLS if TLS setting was enabled
+                                                MaybeTLS::Tls(mut conn) => {
+                                                    conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                                        .await?;
+
+                                                    let mut resp = String::new();
+                                                    conn.read_to_string(&mut resp).await?;
+                                                }
+                                            }
+
                                         }
                                         _  => {
-                                            info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
+                                            error!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
                                         }
                                     }
 
-                                    Ok(Ack { proxy: &proxy, latency: now.elapsed().as_millis() })
+                                    Ok(Ack { proxy: uri.to_string(), latency: now.elapsed().as_millis() })
                                 }.await;
                                 result
                             });
@@ -293,17 +314,17 @@ pub async fn check_proxy_list(
                                             match res {
                                                 Ok(ack) => {
                                                     info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
-                                                    chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
+                                                    let _ = chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
                                                 }
-                                                Err(err) => {
+                                                Err(_) => {
                                                     info!("proxy:bad:{}", proxy);
-                                                    chan.send(format!("proxy|bad|{}", proxy));
+                                                    let _ = chan.send(format!("proxy|bad|{}", proxy));
                                                 }
                                             }
                                         }
                                         Err(err) => {
                                             error!("task aborted because it timed out: {:?}", err);
-                                            chan.send(format!("proxy|bad|{}", proxy));
+                                            let _ = chan.send(format!("proxy|bad|{}", proxy));
                                         }
                                     }
 
@@ -319,7 +340,7 @@ pub async fn check_proxy_list(
         }
 
         for task in tasks {
-            task.await;
+            let _ = task.await;
         }
 
         info!("pool completed");
@@ -335,7 +356,7 @@ pub async fn check_proxy_list(
         state.proxy_checker.workers_state.store(false, SeqCst);
 
         info!("worker pool OP completion");
-        chan.send("proxy-checker:end".into());
+        let _ = chan.send("proxy-checker:end".into());
         info!("COUNT: {}", count.load(SeqCst));
     });
     Ok(())

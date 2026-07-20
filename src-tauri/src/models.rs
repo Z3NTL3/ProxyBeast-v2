@@ -1,3 +1,4 @@
+use proxifier_rs::{TcpStream, TlsStream};
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, DurationMilliSeconds, serde_as};
 use std::time::Duration;
@@ -10,6 +11,11 @@ pub enum Scheme {
     Https,
     Socks4,
     Socks5,
+}
+
+pub enum MaybeTLS {
+    Plain(TcpStream),
+    Tls(Box<TlsStream<TcpStream>>),
 }
 
 impl std::fmt::Display for Scheme {
