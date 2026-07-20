@@ -1,5 +1,7 @@
 #![allow(unused)]
+use crate::models::{self, Scheme};
 use anyhow::anyhow;
+use fancy_regex::Regex;
 use proxifier_rs::auth::Auth;
 use proxifier_rs::{NetworkTarget, Port, ServerName};
 use serde::de::Unexpected::Seq;
@@ -15,10 +17,8 @@ use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout};
 use tokio::{fs, join, select};
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use url::Url;
-
-use crate::models::{self, Scheme};
 
 #[derive(Debug)]
 struct Ack<'a> {
@@ -185,99 +185,133 @@ pub async fn check_proxy_list(
                 't1: while !receiver.is_empty() && !token.is_cancelled() {
                     let app_clone = app_clone.clone();
                     let proxy = receiver.try_recv();
-                    if let Ok(proxy) = proxy {
-                        let task = timeout(d, async {
-                            let result: anyhow::Result<Ack> = async {
-                                let proxy = &proxy;
-                                let scheme = config.enforce_scheme;
+                    if let Ok(mut proxy) = proxy {
+                        let scheme = config.enforce_scheme;
+                        let re = Regex::new(
+                            r"(?<=((socks4:\/\/)|(socks5:\/\/)|(http:\/\/)|(https:\/\/)))(.*)",
+                        );
 
-                                // todo
-                                match scheme {
-                                    Scheme::MULTI => {},
-                                    Scheme::HTTP => {},
-                                    Scheme::HTTPS => {},
-                                    Scheme::SOCKS4 => {}
-                                    Scheme::SOCKS5 => {}
-                                    _ => {}
-                                };
+                        if re.is_err() {
+                            info!("is err");
+                            continue 't1;
+                        }
 
-                                let uri = proxy.parse::<Url>()?;
-                                info!("proxy recv: {:?}", proxy);
-
-                                let mut auth = Auth::NoAuth;
-                                let now = Instant::now();
-                                match uri.scheme() {
-                                    "http" => todo!(),
-                                    "https" => todo!(),
-                                    "socks4" => todo!(),
-                                    "socks5" => {
-                                        if let Some(pass) = uri.password() {
-                                            auth = Auth::UserPass(uri.username().into(), pass.into())
-                                        }
-
-                                        let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
-                                            proxifier_rs::Context {
-                                                proxy: format!("{}:{}",
-                                                    uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
-                                                    uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
-                                                ).parse()?,
-                                                // make it so that judges are configurable, not supported yet
-                                                destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
-                                            },
-                                            auth,
-                                        )
-                                        .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
-
-                                        conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
-                                            .await?;
-
-                                        let mut resp = String::new();
-                                        conn.read_to_string(&mut resp).await?;
-                                        // info!("network ack: {:?}", resp);
-                                    }
-                                    _  => {
-                                        //info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
-                                    }
-                                }
-
-                                Ok(Ack { proxy, latency: now.elapsed().as_millis() })
-                            }.await;
-                            result
-                        });
-
-                        select! {
-                            // prioritize cancellation
-                            biased;
-                            _ = token.cancelled() => {
-                                 info!("task was cancelled");
-                                 break 't1;
+                        let re = re.unwrap();
+                        match re.find(&proxy) {
+                            Ok(Some(v)) => {
+                                debug!("match {}", v.as_str());
+                                proxy = v.as_str().to_owned();
                             }
-                            res = task => {
-                                match res {
-                                    Ok(res) => {
-                                        match res {
-                                            Ok(ack) => {
-                                                count.fetch_add(1, SeqCst);
-                                                info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
-                                                chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
-                                            }
-                                            Err(err) => {
-                                                count.fetch_add(1, SeqCst);
-                                                info!("proxy:bad:{}", proxy);
-                                                chan.send(format!("proxy|bad|{}", proxy));
-                                            }
-                                        }
-                                    }
-                                    Err(err) => {
-                                        count.fetch_add(1, SeqCst);
-                                        error!("task aborted because it timed out: {:?}", err);
-                                        chan.send(format!("proxy|bad|{}", proxy));
-                                    }
-                                }
-
-                                info!("task finished");
+                            Ok(None) => {
+                                error!("regex didnt match continuing 't1");
+                                continue 't1;
+                            }
+                            Err(err) => {
+                                error!("regex didnt match continuing 't1");
+                                continue 't1;
                             }
                         };
+
+                        let mut combine_scan: Vec<String> = vec![];
+                        match scheme {
+                            Scheme::Uri => combine_scan.push(proxy.to_string()),
+                            Scheme::Multi => {
+                                for proc in ["http", "https", "socks4", "socks5"] {
+                                    combine_scan.push(format!("{}://{}", proc, proxy));
+                                }
+                            }
+                            Scheme::Http => combine_scan.push(format!("{}://{}", "http", proxy)),
+                            Scheme::Https => combine_scan.push(format!("{}://{}", "https", proxy)),
+                            Scheme::Socks4 => {
+                                combine_scan.push(format!("{}://{}", "socks4", proxy))
+                            }
+                            Scheme::Socks5 => {
+                                combine_scan.push(format!("{}://{}", "socks5", proxy))
+                            }
+                        };
+
+                        debug!("combined proxy: {:?}", combine_scan);
+                        for proxy in combine_scan {
+                            let task = timeout(d, async {
+                                let result: anyhow::Result<Ack> = async {
+                                    let uri = proxy.parse::<Url>()?;
+                                    info!("proxy recv: {:?}", proxy);
+
+                                    let mut auth = Auth::NoAuth;
+                                    let judge = &config.judge;
+                                    let retry = &config.retry;
+
+                                    let now = Instant::now();
+                                    match uri.scheme() {
+                                        "http" => {},
+                                        "https" => {},
+                                        "socks4" => {},
+                                        "socks5" => {
+                                            if let Some(pass) = uri.password() {
+                                                auth = Auth::UserPass(uri.username().into(), pass.into())
+                                            }
+
+                                            let mut conn = proxifier_rs::socks_with_tls(proxifier_rs::socks5::connect(
+                                                proxifier_rs::Context {
+                                                    proxy: format!("{}:{}",
+                                                        uri.host_str().ok_or_else(|| anyhow!("couldn't retrieve host portion"))?,
+                                                        uri.port().ok_or_else(|| anyhow!("couldn't retrieve port portion"))?
+                                                    ).parse()?,
+                                                    // make it so that judges are configurable, not supported yet
+                                                    destination: NetworkTarget::Domain("pool.proxyspace.pro".parse()?, Port(443)),
+                                                },
+                                                auth,
+                                            )
+                                            .await?, state.tls_config.clone(), ServerName::try_from("pool.proxyspace.pro")?).await?;
+
+                                            conn.write_all(b"GET /judge.php HTTP/1.1\r\nHost: pool.proxyspace.pro:443\r\nConnection: close\r\n\r\n")
+                                                .await?;
+
+                                            let mut resp = String::new();
+                                            conn.read_to_string(&mut resp).await?;
+                                            // info!("network ack: {:?}", resp);
+                                        }
+                                        _  => {
+                                            info!("skipping unknown proxy scheme '{:?}' in {:?}", uri.scheme(), uri);
+                                        }
+                                    }
+
+                                    Ok(Ack { proxy: &proxy, latency: now.elapsed().as_millis() })
+                                }.await;
+                                result
+                            });
+                            select! {
+                                // prioritize cancellation
+                                biased;
+                                _ = token.cancelled() => {
+                                     info!("task was cancelled");
+                                     break 't1;
+                                }
+                                res = task => {
+                                    match res {
+                                        Ok(res) => {
+                                            match res {
+                                                Ok(ack) => {
+                                                    info!("proxy:good:{}:latency:{}", ack.proxy, ack.latency);
+                                                    chan.send(format!("proxy|good|{}|latency|{}", ack.proxy, ack.latency));
+                                                }
+                                                Err(err) => {
+                                                    info!("proxy:bad:{}", proxy);
+                                                    chan.send(format!("proxy|bad|{}", proxy));
+                                                }
+                                            }
+                                        }
+                                        Err(err) => {
+                                            error!("task aborted because it timed out: {:?}", err);
+                                            chan.send(format!("proxy|bad|{}", proxy));
+                                        }
+                                    }
+
+                                    count.fetch_add(1, SeqCst);
+                                    info!("task finished");
+                                }
+                            };
+                        }
                     }
                 }
             });

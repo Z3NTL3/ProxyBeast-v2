@@ -4,23 +4,23 @@ use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Scheme {
-    URI,
-    MULTI,
-    HTTP,
-    HTTPS,
-    SOCKS4,
-    SOCKS5,
+    Uri,
+    Multi,
+    Http,
+    Https,
+    Socks4,
+    Socks5,
 }
 
 impl std::fmt::Display for Scheme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Scheme::URI => write!(f, "URI"),
-            Scheme::MULTI => write!(f, "MULTI"),
-            Scheme::HTTP => write!(f, "HTTP"),
-            Scheme::HTTPS => write!(f, "HTTPS"),
-            Scheme::SOCKS4 => write!(f, "SOCKS4"),
-            Scheme::SOCKS5 => write!(f, "SOCKS5"),
+            Scheme::Uri => write!(f, "URI"),
+            Scheme::Multi => write!(f, "MULTI"),
+            Scheme::Http => write!(f, "HTTP"),
+            Scheme::Https => write!(f, "HTTPS"),
+            Scheme::Socks4 => write!(f, "SOCKS4"),
+            Scheme::Socks5 => write!(f, "SOCKS5"),
         }
     }
 }
@@ -30,13 +30,13 @@ impl core::str::FromStr for Scheme {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "URI" => Scheme::URI,
-            "MULTI" => Scheme::MULTI,
-            "HTTP" => Scheme::HTTP,
-            "HTTPS" => Scheme::HTTPS,
-            "SOCKS4" => Scheme::SOCKS4,
-            "SOCKS5" => Scheme::SOCKS5,
-            _ => Scheme::URI,
+            "URI" => Scheme::Uri,
+            "MULTI" => Scheme::Multi,
+            "HTTP" => Scheme::Http,
+            "HTTPS" => Scheme::Https,
+            "SOCKS4" => Scheme::Socks4,
+            "SOCKS5" => Scheme::Socks5,
+            _ => Scheme::Uri,
         })
     }
 }
@@ -73,7 +73,7 @@ fn default_judge() -> String {
 }
 
 fn default_scheme() -> Scheme {
-    Scheme::URI
+    Scheme::Uri
 }
 
 fn default_tls() -> bool {

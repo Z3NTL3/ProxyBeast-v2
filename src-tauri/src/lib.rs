@@ -138,7 +138,7 @@ pub fn run() {
                 timeout: Duration::from_millis(5000),
                 pool_size: 1000,
                 judge: "google.com".into(),
-                enforce_scheme: crate::models::Scheme::URI,
+                enforce_scheme: crate::models::Scheme::Uri,
                 use_tls: true,
                 retry: true,
             };

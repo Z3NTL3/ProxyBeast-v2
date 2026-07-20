@@ -21,17 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { AppSettings } from "@/@types/app";
 
 const APPLOG_DIR = await path.appLogDir();
-interface AppSettings {
-  poolSize: number;
-  timeoutMS: number;
-  judge: string;
-  scheme: string;
-  use_tls: boolean;
-  retry: boolean;
-}
-
 const JUDGES: Array<{ label: string; value: string }> = [
   {
     label: "Google",
@@ -397,7 +389,7 @@ export default function Settings() {
               </p>
             </div>
             <div className="flex grow  justify-end items-center">
-              <Switch onCheckedChange={((checked) => {
+              <Switch disabled onCheckedChange={((checked) => {
                 setSettings((settings) => {
                   return {
                     ...settings,

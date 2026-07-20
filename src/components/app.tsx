@@ -14,6 +14,7 @@ import { ScreenContext } from "@/screen.context";
 import { Badge } from "./ui/badge";
 import { RxFile } from "react-icons/rx";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { AppSettings } from "@/@types/app";
 
 const App = function () {
   let [logs, setLogs] = useState<
@@ -31,7 +32,25 @@ const App = function () {
   let [proxies, setProxies] = useState<string[]>([]);
   let filePath = useRef("");
 
+  let [settings, setSettings] = useState<AppSettings | null>(null);
   let screen = useContext(ScreenContext);
+
+  useEffect(() => {
+    invoke("retrieve_settings")
+      .then((payload) => {
+        let cast = payload as typeof settings;
+        if(cast !== null)
+          setSettings((_) => {
+            return {
+              ...cast,
+            };
+          });
+      })
+      .catch((err) => {
+        toast.error(String(err));
+      });
+  }, []);
+
   useEffect(() => {
     if (typeof screen.setData !== "undefined") {
       screen.setData((screen_) => {
@@ -192,7 +211,7 @@ const App = function () {
 
   const calcProgress = () => {
     let current_progress = live_pane.current + dead_pane.current;
-    let p = (current_progress / load_pane) * 100;
+    let p = (current_progress / (settings?.scheme == "MULTI" ? load_pane * 4 : load_pane) ) * 100;
     progress.current = p;
   };
 
