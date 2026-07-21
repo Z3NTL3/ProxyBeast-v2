@@ -32,11 +32,7 @@ const JUDGES: Array<{ label: string; value: string }> = [
   {
     label: "Cloudflare",
     value: "one.one.one.one",
-  },
-  {
-    label: "ProxySpace",
-    value: "proxyspace.pro",
-  },
+  }
 ];
 
 type SchemeKind = "URI" | "MULTI" | "HTTP" | "HTTPS" | "SOCKS4" | "SOCKS5"
@@ -301,7 +297,7 @@ export default function Settings() {
             >
               <SelectTrigger
                 value={settings.scheme as string}
-                className="w-[180px]"
+                className="w-[180px] text-gray-400"
               >
                 <Tooltip>
                   <TooltipTrigger render={

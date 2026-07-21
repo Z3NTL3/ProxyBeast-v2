@@ -233,7 +233,7 @@ const App = function () {
               if (typeof path === "string" && path.length > 1) {
                 invoke("read_file", { path })
                   .then((v) => {
-                    setLoad(v as number);
+                    setLoad(settings?.scheme === "MULTI" ? v as number * 4: v as number);
                     filePath.current = path;
                     toast.info("Selected proxy file");
                   })
