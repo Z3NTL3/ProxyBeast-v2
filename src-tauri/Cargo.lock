@@ -2756,9 +2756,9 @@ dependencies = [
 
 [[package]]
 name = "proxifier-rs"
-version = "0.1.112"
+version = "0.1.113"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1dfc339df1d09a27094a3f8ba6c42681e652fb793495738f3fd4baefcd7a4f4"
+checksum = "779423b9031acc3ce2fae4ec87acce749f322cbcc1a6c534874a0552e15acb8b"
 dependencies = [
  "http",
  "rustls",
@@ -2775,6 +2775,7 @@ version = "0.1.5"
 dependencies = [
  "anyhow",
  "async-channel",
+ "base64 0.22.1",
  "chrono",
  "fancy-regex",
  "http",
